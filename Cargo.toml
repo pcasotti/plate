@@ -3,6 +3,7 @@ name = "plate"
 version = "0.1.0"
 edition = "2021"
 description = "Rust library for writing simpler Vulkan code"
+repository= "https://gitlab.com/pcasotti/plate"
 license = "MIT"
 license-file = "LICENSE"
 keywords = ["graphics", "rendering", "vulkan"]
