@@ -2,6 +2,10 @@
 name = "plate"
 version = "0.1.0"
 edition = "2021"
+description = "Rust library for writing simpler Vulkan code"
+license = "MIT"
+license-file = "LICENSE"
+keywords = ["graphics", "rendering", "vulkan"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
