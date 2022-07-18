@@ -5,7 +5,6 @@ edition = "2021"
 description = "Rust library for writing simpler Vulkan code"
 repository= "https://gitlab.com/pcasotti/plate"
 license = "MIT"
-license-file = "LICENSE"
 keywords = ["graphics", "rendering", "vulkan"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
