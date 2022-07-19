@@ -1,0 +1,35 @@
+[package]
+name = "examples"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dev-dependencies]
+plate = { path = "../plate" }
+ash = { version = "0.37", features = ["linked"] }
+winit = "0.26"
+ash-window = "0.10"
+vk-shader-macros = "0.2"
+thiserror = "1.0"
+bitflags = "1.3"
+glam = "0.21"
+memoffset = "0.6"
+tobj = "3.2"
+
+[[example]]
+name = "triangle"
+path = "triangle.rs"
+
+[[example]]
+name = "vert_buffer"
+path = "vert_buffer.rs"
+
+[[example]]
+name = "index_buffer"
+path = "index_buffer.rs"
+
+[[example]]
+name = "uniform_buffer"
+path = "uniform_buffer.rs"

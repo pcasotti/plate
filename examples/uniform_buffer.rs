@@ -6,6 +6,11 @@ struct Vert {
     color: glam::Vec3,
 }
 
+#[repr(C)]
+struct Ubo {
+    model: glam::Mat4,
+}
+
 impl VertexDescription for Vert {
     fn binding_descriptions() -> Vec<plate::VertexBindingDescription> {
         vec![
@@ -30,15 +35,25 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let surface = plate::Surface::new(&entry, &instance, &window)?;
     let device = plate::Device::new(instance, surface, &Default::default())?;
     let mut swapchain = plate::swapchain::Swapchain::new(&device, &window, None)?;
+
+    let set_layout = plate::DescriptorSetLayout::new(
+        &device,
+        &[plate::LayoutBinding {
+            binding: 0,
+            ty: plate::DescriptorType::UNIFORM_BUFFER,
+            stage: plate::ShaderStage::VERTEX,
+            count: 1,
+        }],
+    )?;
     let pipeline = plate::pipeline::Pipeline::new(
         &device,
         &swapchain,
-        vk_shader_macros::include_glsl!("examples/shaders/index_buffer/shader.vert"),
-        vk_shader_macros::include_glsl!("examples/shaders/index_buffer/shader.frag"),
+        vk_shader_macros::include_glsl!("shaders/uniform_buffer/shader.vert"),
+        vk_shader_macros::include_glsl!("shaders/uniform_buffer/shader.frag"),
         &plate::PipelineParameters {
             vertex_binding_descriptions: Vert::binding_descriptions(),
             vertex_attribute_descriptions: Vert::attribute_descriptions(),
-            ..Default::default()
+            descriptor_set_layout: Some(&set_layout),
         },
     )?;
 
@@ -56,10 +71,32 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let vert_buffer = plate::VertexBuffer::new(&device, &vertices, &cmd_pool)?;
     let index_buffer = plate::IndexBuffer::new(&device, &indices, &cmd_pool)?;
 
+    let descriptor_pool = plate::DescriptorPool::new(
+        &device,
+        &[plate::PoolSize {
+            ty: plate::DescriptorType::UNIFORM_BUFFER,
+            count: 1,
+        }],
+        1
+    )?;
+
+    let mut ubo: plate::Buffer<Ubo> = plate::Buffer::new(
+        &device,
+       std::mem::size_of::<Ubo>() as u64,
+        plate::BufferUsageFlags::UNIFORM_BUFFER,
+        plate::SharingMode::EXCLUSIVE,
+        plate::MemoryPropertyFlags::HOST_VISIBLE | plate::MemoryPropertyFlags::HOST_VISIBLE,
+    )?;
+    ubo.map()?;
+    let descriptor_set = plate::DescriptorAllocator::new(&device)
+        .add_binding(0, plate::DescriptorType::UNIFORM_BUFFER, &ubo)
+        .allocate(&set_layout, &descriptor_pool)?;
+
     let fence = plate::Fence::new(&device, plate::FenceFlags::SIGNALED)?;
     let acquire_sem = plate::Semaphore::new(&device, plate::SemaphoreFlags::empty())?;
     let present_sem = plate::Semaphore::new(&device, plate::SemaphoreFlags::empty())?;
 
+    let mut rot = 0.0;
     event_loop.run(move |event, _, control_flow| {
         *control_flow = winit::event_loop::ControlFlow::Poll;
         match event {
@@ -75,16 +112,23 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
             winit::event::Event::MainEventsCleared => window.request_redraw(),
             winit::event::Event::RedrawRequested(window_id) if window_id == window.id() => {
+                rot += 0.01;
+
                 fence.wait().unwrap();
                 fence.reset().unwrap();
 
                 let (i, _) = swapchain.next_image(&acquire_sem).unwrap();
 
+                ubo.write(&[Ubo { model: glam::Mat4::from_rotation_z(rot) }]);
+
                 cmd_buffer.record(plate::CommandBufferUsageFlags::empty(), || {
                     swapchain.begin_render_pass(*cmd_buffer, i.try_into().unwrap());
+
                     pipeline.bind(*cmd_buffer, &swapchain);
                     vert_buffer.bind(&cmd_buffer);
                     index_buffer.bind(&cmd_buffer);
+                    descriptor_set.bind(&cmd_buffer, pipeline.layout);
+
                     cmd_buffer.draw_indexed(indices.len() as u32, 1, 0, 0, 0);
                     swapchain.end_render_pass(*cmd_buffer);
                 }).unwrap();

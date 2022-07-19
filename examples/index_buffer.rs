@@ -33,8 +33,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let pipeline = plate::pipeline::Pipeline::new(
         &device,
         &swapchain,
-        vk_shader_macros::include_glsl!("examples/shaders/vert_buffer/shader.vert"),
-        vk_shader_macros::include_glsl!("examples/shaders/vert_buffer/shader.frag"),
+        vk_shader_macros::include_glsl!("shaders/index_buffer/shader.vert"),
+        vk_shader_macros::include_glsl!("shaders/index_buffer/shader.frag"),
         &plate::PipelineParameters {
             vertex_binding_descriptions: Vert::binding_descriptions(),
             vertex_attribute_descriptions: Vert::attribute_descriptions(),
@@ -46,11 +46,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let cmd_buffer = cmd_pool.alloc_cmd_buffer(plate::CommandBufferLevel::PRIMARY)?;
 
     let vertices = vec![
-        Vert { pos: glam::vec2(0.0, -0.5), color: glam::vec3(1.0, 0.0, 0.0) },
-        Vert { pos: glam::vec2(0.5, 0.5), color: glam::vec3(0.0, 1.0, 0.0) },
-        Vert { pos: glam::vec2(-0.5, 0.5), color: glam::vec3(0.0, 0.0, 1.0) },
+        Vert { pos: glam::vec2(-0.5, -0.5), color: glam::vec3(1.0, 0.0, 0.0) },
+        Vert { pos: glam::vec2(0.5, -0.5), color: glam::vec3(0.0, 1.0, 0.0) },
+        Vert { pos: glam::vec2(0.5, 0.5), color: glam::vec3(0.0, 0.0, 1.0) },
+        Vert { pos: glam::vec2(-0.5, 0.5), color: glam::vec3(1.0, 1.0, 1.0) },
     ];
+    let indices = vec![0, 1, 2, 2, 3, 0];
+
     let vert_buffer = plate::VertexBuffer::new(&device, &vertices, &cmd_pool)?;
+    let index_buffer = plate::IndexBuffer::new(&device, &indices, &cmd_pool)?;
 
     let fence = plate::Fence::new(&device, plate::FenceFlags::SIGNALED)?;
     let acquire_sem = plate::Semaphore::new(&device, plate::SemaphoreFlags::empty())?;
@@ -80,7 +84,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     swapchain.begin_render_pass(*cmd_buffer, i.try_into().unwrap());
                     pipeline.bind(*cmd_buffer, &swapchain);
                     vert_buffer.bind(&cmd_buffer);
-                    cmd_buffer.draw(vertices.len() as u32, 1, 0, 0);
+                    index_buffer.bind(&cmd_buffer);
+                    cmd_buffer.draw_indexed(indices.len() as u32, 1, 0, 0, 0);
                     swapchain.end_render_pass(*cmd_buffer);
                 }).unwrap();
 
