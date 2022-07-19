@@ -1,24 +1,12 @@
 use plate::VertexDescription;
 
 #[repr(C)]
+#[derive(plate_macros::Vertex)]
 struct Vert {
+    #[vertex(loc = 0, format = "R32G32_SFLOAT")]
     pos: glam::Vec2,
+    #[vertex(loc = 1, format = "R32G32B32_SFLOAT")]
     color: glam::Vec3,
-}
-
-impl VertexDescription for Vert {
-    fn binding_descriptions() -> Vec<plate::VertexBindingDescription> {
-        vec![
-            plate::VertexBindingDescription::new(0, std::mem::size_of::<Self>() as u32, plate::InputRate::VERTEX)
-        ]
-    }
-
-    fn attribute_descriptions() -> Vec<plate::VertexAttributeDescription> {
-        vec![
-            plate::VertexAttributeDescription::new(0, 0, memoffset::offset_of!(Self, pos) as u32, plate::Format::R32G32_SFLOAT),
-            plate::VertexAttributeDescription::new(0, 1, memoffset::offset_of!(Self, color) as u32, plate::Format::R32G32B32_SFLOAT),
-        ]
-    }
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {

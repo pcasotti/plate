@@ -8,6 +8,7 @@ publish = false
 
 [dev-dependencies]
 plate = { path = "../plate" }
+plate-macros = { path = "../plate-macros" }
 ash = { version = "0.37", features = ["linked"] }
 winit = "0.26"
 ash-window = "0.10"
