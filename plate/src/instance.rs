@@ -48,7 +48,7 @@ impl Default for InstanceParameters {
             app_version: (0, 1, 0, 0),
             engine_name: "wvk".into(),
             engine_version: (0, 1, 0, 0),
-            api_version: ApiVersion::Type1_0,
+            api_version: ApiVersion::Type1_1,
             extra_layers: vec![],
             extra_extensions: vec![],
         }

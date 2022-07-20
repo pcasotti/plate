@@ -6,7 +6,7 @@ pub use descriptor::*;
 pub mod device;
 pub use device::*;
 pub mod instance;
-pub use instance::Instance;
+pub use instance::*;
 pub mod pipeline;
 pub use pipeline::*;
 pub mod surface;

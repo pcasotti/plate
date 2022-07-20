@@ -119,10 +119,14 @@ impl Device {
         let features = vk::PhysicalDeviceFeatures::builder();
         let extensions = [khr::Swapchain::name().as_ptr()];
 
+        //TODO make a way to toggle spirv params and ensure api version
+        let mut draw_params = vk::PhysicalDeviceShaderDrawParametersFeatures::builder()
+            .shader_draw_parameters(true);
         let device_info = vk::DeviceCreateInfo::builder()
             .queue_create_infos(&queue_infos)
             .enabled_features(&features)
-            .enabled_extension_names(&extensions);
+            .enabled_extension_names(&extensions)
+            .push_next(&mut draw_params);
 
         let device = unsafe { instance.create_device(physical_device, &device_info, None)? };
 
