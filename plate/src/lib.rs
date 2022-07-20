@@ -17,3 +17,8 @@ pub mod command;
 pub use command::*;
 pub mod sync;
 pub use sync::*;
+
+
+#[cfg(feature = "macros")]
+pub use plate_macros;
+pub use memoffset;

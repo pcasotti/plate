@@ -64,12 +64,11 @@ pub fn vert(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
                     .expect("no attr?")
             } else { unreachable!() };
             let format = if let syn::Lit::Str(s) = &format_nv.lit {
-                //syn::Ident::new(&s.value(), s.span())
                 quote::format_ident!("{}", s.value())
             } else { unimplemented!("not str") };
 
             quote! {
-                plate::VertexAttributeDescription::new(0, #location, memoffset::offset_of!(Self, #ident) as u32, plate::Format::#format)
+                plate::VertexAttributeDescription::new(0, #location, plate::memoffset::offset_of!(Self, #ident) as u32, plate::Format::#format)
             }
         });
 

@@ -1,4 +1,5 @@
 use plate::VertexDescription;
+use plate::plate_macros;
 
 #[repr(C)]
 #[derive(plate_macros::Vertex)]
