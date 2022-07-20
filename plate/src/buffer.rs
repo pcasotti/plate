@@ -17,7 +17,7 @@ impl<T> VertexBuffer<T> {
         let size = (mem::size_of::<T>() * data.len()) as u64;
         let mut staging = Buffer::new(
             device,
-            size,
+            data.len(),
             vk::BufferUsageFlags::TRANSFER_SRC,
             vk::SharingMode::EXCLUSIVE,
             vk::MemoryPropertyFlags::HOST_VISIBLE | vk::MemoryPropertyFlags::HOST_COHERENT,
@@ -29,7 +29,7 @@ impl<T> VertexBuffer<T> {
 
         let buffer = Buffer::new(
             device,
-            size,
+            data.len(),
             vk::BufferUsageFlags::TRANSFER_DST | vk::BufferUsageFlags::VERTEX_BUFFER,
             vk::SharingMode::EXCLUSIVE,
             vk::MemoryPropertyFlags::DEVICE_LOCAL,
@@ -55,7 +55,7 @@ impl<T> IndexBuffer<T> {
         let size = (mem::size_of::<T>() * data.len()) as u64;
         let mut staging = Buffer::new(
             device,
-            size,
+            data.len(),
             vk::BufferUsageFlags::TRANSFER_SRC,
             vk::SharingMode::EXCLUSIVE,
             vk::MemoryPropertyFlags::HOST_VISIBLE | vk::MemoryPropertyFlags::HOST_COHERENT,
@@ -67,7 +67,7 @@ impl<T> IndexBuffer<T> {
 
         let buffer = Buffer::new(
             device,
-            size,
+            data.len(),
             vk::BufferUsageFlags::TRANSFER_DST | vk::BufferUsageFlags::INDEX_BUFFER,
             vk::SharingMode::EXCLUSIVE,
             vk::MemoryPropertyFlags::DEVICE_LOCAL,
@@ -94,7 +94,8 @@ pub struct Buffer<T> {
     device: Arc<Device>,
     buffer: vk::Buffer,
     mem: vk::DeviceMemory,
-    mapped: Option<*mut ffi::c_void>,
+    mapped: Option<*mut ffi::c_void>, 
+    instance_count: usize,
 
     marker: marker::PhantomData<T>,
 }
@@ -112,13 +113,15 @@ impl<T> Drop for Buffer<T> {
 impl<T> Buffer<T> {
     pub fn new(
         device: &Arc<Device>,
-        size: u64,
+        instance_count: usize,
         usage: vk::BufferUsageFlags,
         sharing_mode: vk::SharingMode,
         memory_properties: vk::MemoryPropertyFlags,
     ) -> Result<Self, vk::Result> {
+        let size = mem::size_of::<T>() * instance_count;
+
         let buffer_info = vk::BufferCreateInfo::builder()
-            .size(size)
+            .size(size as u64)
             .usage(usage)
             .sharing_mode(sharing_mode);
 
@@ -149,6 +152,7 @@ impl<T> Buffer<T> {
             buffer,
             mem,
             mapped: None,
+            instance_count,
 
             marker: marker::PhantomData,
         })
@@ -158,7 +162,7 @@ impl<T> Buffer<T> {
         *vk::DescriptorBufferInfo::builder()
             .buffer(self.buffer)
             .offset(0)
-            .range(mem::size_of::<T>() as u64)
+            .range((mem::size_of::<T>()*self.instance_count) as u64)
     }
 
     pub fn map(&mut self) -> Result<(), vk::Result> {
@@ -190,6 +194,17 @@ impl<T> Buffer<T> {
         unsafe {
             data.as_ptr()
                 .copy_to_nonoverlapping(self.mapped.unwrap() as *mut _, data.len())
+        };
+    }
+
+    pub fn write_index(&mut self, data: &[T], index: usize) {
+        assert!(index < self.instance_count);
+        if self.mapped.is_none() {
+            panic!("cannot write to unmapped buffer")
+        }
+        unsafe {
+            data.as_ptr()
+                .copy_to_nonoverlapping((self.mapped.unwrap() as *mut T).offset(index as isize), data.len())
         };
     }
 

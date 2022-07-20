@@ -82,7 +82,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let mut ubo: plate::Buffer<Ubo> = plate::Buffer::new(
         &device,
-       std::mem::size_of::<Ubo>() as u64,
+        1,
         plate::BufferUsageFlags::UNIFORM_BUFFER,
         plate::SharingMode::EXCLUSIVE,
         plate::MemoryPropertyFlags::HOST_VISIBLE | plate::MemoryPropertyFlags::HOST_VISIBLE,
