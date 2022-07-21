@@ -89,7 +89,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     )?;
     ubo.map()?;
     let descriptor_set = plate::DescriptorAllocator::new(&device)
-        .add_binding(0, plate::DescriptorType::UNIFORM_BUFFER, &ubo)
+        .add_buffer_binding(0, plate::DescriptorType::UNIFORM_BUFFER, &ubo)
         .allocate(&set_layout, &descriptor_pool)?;
 
     let fence = plate::Fence::new(&device, plate::FenceFlags::SIGNALED)?;
