@@ -210,7 +210,6 @@ impl<T> Buffer<T> {
 
     pub fn copy_to(&self, target: &Buffer<T>, size: vk::DeviceSize, cmd_pool: &CommandPool) -> Result<(), vk::Result> {
         let command_buffer = cmd_pool.alloc_cmd_buffer(CommandBufferLevel::PRIMARY)?;
-
         command_buffer.record(CommandBufferUsageFlags::ONE_TIME_SUBMIT, || {
             let regions = [*vk::BufferCopy::builder().size(size)];
             unsafe {
@@ -224,8 +223,34 @@ impl<T> Buffer<T> {
         })?;
 
         self.device.queue_submit(self.device.graphics_queue, &command_buffer, PipelineStage::empty(), &Semaphore::None, &Semaphore::None, &Fence::None).unwrap();
-        unsafe { self.device.queue_wait_idle(self.device.graphics_queue.queue)? };
+        unsafe { self.device.queue_wait_idle(self.device.graphics_queue.queue) }
+    }
 
-        Ok(())
+    //TODO join functions with a trait
+    pub fn copy_to_image(&self, image: vk::Image, width: u32, height: u32, cmd_pool: &CommandPool) -> Result<(), vk::Result> {
+        let cmd_buffer = cmd_pool.alloc_cmd_buffer(CommandBufferLevel::PRIMARY)?;
+        cmd_buffer.record(CommandBufferUsageFlags::ONE_TIME_SUBMIT, || {
+            let region = vk::BufferImageCopy::builder()
+                .buffer_offset(0)
+                .buffer_row_length(0)
+                .buffer_image_height(0)
+                .image_subresource(vk::ImageSubresourceLayers {
+                    aspect_mask: vk::ImageAspectFlags::COLOR,
+                    mip_level: 0,
+                    base_array_layer: 0,
+                    layer_count: 1,
+                })
+                .image_offset(vk::Offset3D { x: 0, y: 0, z: 0 })
+                .image_extent(vk::Extent3D { 
+                    width,
+                    height,
+                    depth: 1,
+                });
+
+            unsafe { self.device.cmd_copy_buffer_to_image(*cmd_buffer, self.buffer, image, vk::ImageLayout::TRANSFER_DST_OPTIMAL, &[*region]) };
+        })?;
+
+        self.device.queue_submit(self.device.graphics_queue, &cmd_buffer, PipelineStage::empty(), &Semaphore::None, &Semaphore::None, &Fence::None).unwrap();
+        unsafe { self.device.queue_wait_idle(self.device.graphics_queue.queue) }
     }
 }

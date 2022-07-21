@@ -17,6 +17,8 @@ pub mod command;
 pub use command::*;
 pub mod sync;
 pub use sync::*;
+pub mod image;
+pub use image::*;
 
 
 #[cfg(feature = "macros")]

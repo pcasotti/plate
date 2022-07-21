@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use ash::vk;
 
-use crate::{buffer, Device, CommandBuffer};
+use crate::{Buffer, Device, CommandBuffer, image::*};
 
 pub use vk::DescriptorType;
 pub use vk::ShaderStageFlags as ShaderStage;
@@ -133,10 +133,15 @@ impl DescriptorSetLayout {
     }
 }
 
+pub enum DescriptorInfo {
+    Buffer(vk::DescriptorBufferInfo),
+    Image(vk::DescriptorImageInfo),
+}
+
 struct WriteDescriptor {
     binding: u32,
     ty: DescriptorType,
-    buffer_info: vk::DescriptorBufferInfo,
+    descriptor_info: DescriptorInfo,
 }
 
 pub struct DescriptorAllocator {
@@ -152,17 +157,23 @@ impl DescriptorAllocator {
         }
     }
 
-    pub fn add_binding<T>(
-        &mut self,
-        binding: u32,
-        ty: DescriptorType,
-        buffer: &buffer::Buffer<T>,
-    ) -> &mut Self {
-        let buffer_info = buffer.descriptor_info();
+    pub fn add_buffer_binding<T>(&mut self, binding: u32, ty: DescriptorType, buffer: &Buffer<T>) -> &mut Self {
+        let descriptor_info = DescriptorInfo::Buffer(buffer.descriptor_info());
         let write = WriteDescriptor {
             binding,
             ty,
-            buffer_info,
+            descriptor_info,
+        };
+        self.writes.push(write);
+        self
+    }
+
+    pub fn add_image_binding(&mut self, binding: u32, ty: DescriptorType, image: &Image, sampler: &Sampler) -> &mut Self {
+        let descriptor_info = DescriptorInfo::Image(image.descriptor_info(sampler));
+        let write = WriteDescriptor {
+            binding,
+            ty,
+            descriptor_info,
         };
         self.writes.push(write);
         self
@@ -183,13 +194,26 @@ impl DescriptorAllocator {
             .writes
             .iter_mut()
             .map(|write| {
-                let buffer_infos = [write.buffer_info];
-                *vk::WriteDescriptorSet::builder()
-                    .dst_set(set)
-                    .dst_binding(write.binding)
-                    .descriptor_type(write.ty)
-                    .dst_array_element(0)
-                    .buffer_info(&buffer_infos)
+                match write.descriptor_info {
+                    DescriptorInfo::Buffer(info) => {
+                        let buffer_infos = [info];
+                        *vk::WriteDescriptorSet::builder()
+                            .dst_set(set)
+                            .dst_binding(write.binding)
+                            .descriptor_type(write.ty)
+                            .dst_array_element(0)
+                            .buffer_info(&buffer_infos)
+                    },
+                    DescriptorInfo::Image(info) => {
+                        let image_infos = [info];
+                        *vk::WriteDescriptorSet::builder()
+                            .dst_set(set)
+                            .dst_binding(write.binding)
+                            .descriptor_type(write.ty)
+                            .dst_array_element(0)
+                            .image_info(&image_infos)
+                    },
+                }
             })
             .collect::<Vec<_>>();
 
