@@ -105,7 +105,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let tex = image::open("examples/texture.jpg")?.flipv();
     let image = plate::Image::new(&device, &cmd_pool, tex.width(), tex.height(), &tex.to_rgba8().into_raw())?;
-    let sampler = plate::Sampler::new(&device)?;
+    let sampler = plate::Sampler::new(&device, &Default::default())?;
 
     let descriptor_set = plate::DescriptorAllocator::new(&device)
         .add_buffer_binding(0, plate::DescriptorType::UNIFORM_BUFFER, &ubo)

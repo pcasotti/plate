@@ -4,6 +4,53 @@ use ash::vk;
 
 use crate::{Buffer, Device, command::*, PipelineStage, sync::*};
 
+pub use vk::Filter as Filter;
+pub use vk::SamplerAddressMode as SamplerAddressMode;
+
+pub struct SamplerFilter {
+    pub min: Filter,
+    pub mag: Filter,
+}
+
+impl SamplerFilter {
+    pub const LINEAR: Self = Self { min: Filter::LINEAR, mag: Filter::LINEAR };
+    pub const NEAREST: Self = Self { min: Filter::NEAREST, mag: Filter::LINEAR };
+    pub const CUBIC_IMG: Self = Self { min: Filter::CUBIC_IMG, mag: Filter::CUBIC_IMG };
+    pub const CUBIC_EXT: Self = Self { min: Filter::CUBIC_EXT, mag: Filter::CUBIC_EXT };
+}
+
+pub struct SamplerAddress {
+    pub u: SamplerAddressMode,
+    pub v: SamplerAddressMode,
+    pub w: SamplerAddressMode,
+}
+
+impl SamplerAddress {
+    pub const REPEAT: Self = Self::all(SamplerAddressMode::REPEAT);
+    pub const MIRRORED_REPEAT: Self = Self::all(SamplerAddressMode::MIRRORED_REPEAT);
+    pub const CLAMP_TO_EDGE: Self = Self::all(SamplerAddressMode::CLAMP_TO_EDGE);
+    pub const CLAMP_TO_BORDER: Self = Self::all(SamplerAddressMode::CLAMP_TO_BORDER);
+    pub const MIRROR_CLAMP_TO_EDGE: Self = Self::all(SamplerAddressMode::MIRROR_CLAMP_TO_EDGE);
+
+    const fn all(mode: SamplerAddressMode) -> Self {
+        Self { u: mode, v: mode, w: mode }
+    }
+}
+
+pub struct SamplerParams {
+    pub filter: SamplerFilter,
+    pub address_mode: SamplerAddress,
+}
+
+impl Default for SamplerParams {
+    fn default() -> Self {
+        Self {
+            filter: SamplerFilter::LINEAR,
+            address_mode: SamplerAddress::REPEAT,
+        }
+    }
+}
+
 pub struct Sampler {
     device: Arc<Device>,
     sampler: vk::Sampler,
@@ -18,13 +65,13 @@ impl Drop for Sampler {
 }
 
 impl Sampler {
-    pub fn new(device: &Arc<Device>) -> Result<Self, vk::Result> {
+    pub fn new(device: &Arc<Device>, params: &SamplerParams) -> Result<Self, vk::Result> {
         let sampler_info = vk::SamplerCreateInfo::builder()
-            .mag_filter(vk::Filter::LINEAR)
-            .min_filter(vk::Filter::LINEAR)
-            .address_mode_u(vk::SamplerAddressMode::REPEAT)
-            .address_mode_v(vk::SamplerAddressMode::REPEAT)
-            .address_mode_w(vk::SamplerAddressMode::REPEAT)
+            .mag_filter(params.filter.min)
+            .min_filter(params.filter.mag)
+            .address_mode_u(params.address_mode.u)
+            .address_mode_v(params.address_mode.v)
+            .address_mode_w(params.address_mode.w)
             .anisotropy_enable(false)
             .max_anisotropy(1.0)
             .border_color(vk::BorderColor::INT_OPAQUE_BLACK)
