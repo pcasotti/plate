@@ -7,7 +7,7 @@ Rust library for writing simpler Vulkan code
 Add the library to your Cargo.toml file:
 ```toml
 [dependencies]
-plate = "0.1"
+plate = "0.1.4"
 ```
 
 Example code is available in the examples directory
