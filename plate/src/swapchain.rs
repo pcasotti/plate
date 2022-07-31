@@ -2,9 +2,7 @@ use std::sync::Arc;
 
 use ash::{extensions::khr, vk};
 
-use crate::{Device, sync::*};
-
-pub const MAX_FRAMES_IN_FLIGHT: u32 = 2;
+use crate::{Device, sync::*, image::*};
 
 pub struct Swapchain(Swap);
 
@@ -37,6 +35,8 @@ pub struct Swap {
 
     images: Vec<vk::Image>,
     image_views: Vec<vk::ImageView>,
+
+    depth_image: Image,
 
     pub render_pass: vk::RenderPass,
     framebuffers: Vec<vk::Framebuffer>,
@@ -177,6 +177,27 @@ impl Swap {
             })
             .collect::<Result<Vec<vk::ImageView>, _>>()?;
 
+        //TODO create a device function for this
+        let depth_format = [
+            vk::Format::D32_SFLOAT,
+            vk::Format::D32_SFLOAT_S8_UINT,
+            vk::Format::D24_UNORM_S8_UINT
+        ].into_iter()
+            .find(|format| {
+                let props = unsafe { device.instance.get_physical_device_format_properties(device.physical_device, *format) };
+                props.optimal_tiling_features.contains(vk::FormatFeatureFlags::DEPTH_STENCIL_ATTACHMENT)
+            }).unwrap();
+
+        let depth_image = Image::new(
+            device,
+            extent.width,
+            extent.height,
+            depth_format,
+            ImageUsageFlags::DEPTH_STENCIL_ATTACHMENT,
+            ImageAspectFlags::DEPTH,
+        )?;
+
+
         let color_attachment = vk::AttachmentDescription::builder()
             .format(image_format.format)
             .samples(vk::SampleCountFlags::TYPE_1)
@@ -187,23 +208,37 @@ impl Swap {
             .initial_layout(vk::ImageLayout::UNDEFINED)
             .final_layout(vk::ImageLayout::PRESENT_SRC_KHR);
 
-        let attachment_refs = [*vk::AttachmentReference::builder()
-            .attachment(0)
-            .layout(vk::ImageLayout::COLOR_ATTACHMENT_OPTIMAL)];
+        let depth_attachment = vk::AttachmentDescription::builder()
+            .format(depth_format)
+            .samples(vk::SampleCountFlags::TYPE_1)
+            .load_op(vk::AttachmentLoadOp::CLEAR)
+            .store_op(vk::AttachmentStoreOp::DONT_CARE)
+            .stencil_load_op(vk::AttachmentLoadOp::DONT_CARE)
+            .stencil_store_op(vk::AttachmentStoreOp::DONT_CARE)
+            .initial_layout(vk::ImageLayout::UNDEFINED)
+            .final_layout(vk::ImageLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+
+        let color_attachment_refs = [*vk::AttachmentReference::builder()
+                .attachment(0)
+                .layout(vk::ImageLayout::COLOR_ATTACHMENT_OPTIMAL)];
+        let depth_attachment_ref = vk::AttachmentReference::builder()
+            .attachment(1)
+            .layout(vk::ImageLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
 
         let subpasses = [*vk::SubpassDescription::builder()
             .pipeline_bind_point(vk::PipelineBindPoint::GRAPHICS)
-            .color_attachments(&attachment_refs)];
+            .color_attachments(&color_attachment_refs)
+            .depth_stencil_attachment(&depth_attachment_ref)];
 
-        let attachments = [*color_attachment];
+        let attachments = [*color_attachment, *depth_attachment];
 
         let dependencies = [*vk::SubpassDependency::builder()
             .src_subpass(vk::SUBPASS_EXTERNAL)
             .dst_subpass(0)
-            .src_stage_mask(vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT)
+            .src_stage_mask(vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT | vk::PipelineStageFlags::EARLY_FRAGMENT_TESTS)
             .src_access_mask(vk::AccessFlags::NONE)
-            .dst_stage_mask(vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT)
-            .dst_access_mask(vk::AccessFlags::COLOR_ATTACHMENT_WRITE)];
+            .dst_stage_mask(vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT | vk::PipelineStageFlags::EARLY_FRAGMENT_TESTS)
+            .dst_access_mask(vk::AccessFlags::COLOR_ATTACHMENT_WRITE | vk::AccessFlags::DEPTH_STENCIL_ATTACHMENT_WRITE)];
 
         let render_pass_info = vk::RenderPassCreateInfo::builder()
             .attachments(&attachments)
@@ -215,7 +250,7 @@ impl Swap {
         let framebuffers = image_views
             .iter()
             .map(|view| {
-                let attachments = [*view];
+                let attachments = [*view, depth_image.view];
                 let framebuffer_info = vk::FramebufferCreateInfo::builder()
                     .render_pass(render_pass)
                     .attachments(&attachments)
@@ -234,6 +269,7 @@ impl Swap {
             extent,
             images,
             image_views,
+            depth_image,
             render_pass,
             framebuffers,
         })
@@ -244,11 +280,19 @@ impl Swap {
     }
 
     pub fn begin_render_pass(&self, command_buffer: vk::CommandBuffer, image_index: usize) {
-        let clear_values = [vk::ClearValue {
-            color: vk::ClearColorValue {
-                float32: [0.0, 0.0, 0.0, 1.0],
+        let clear_values = [
+            vk::ClearValue {
+                color: vk::ClearColorValue {
+                    float32: [0.0, 0.0, 0.0, 1.0],
+                },
             },
-        }];
+            vk::ClearValue {
+                depth_stencil: vk::ClearDepthStencilValue {
+                    depth: 1.0,
+                    stencil: 0,
+                }
+            }
+        ];
 
         let begin_info = vk::RenderPassBeginInfo::builder()
             .render_pass(self.render_pass)

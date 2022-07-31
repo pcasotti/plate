@@ -1,3 +1,4 @@
+//TODO: merge error types and get rid of all unwraps
 pub mod buffer;
 pub use buffer::*;
 pub mod debug;
@@ -20,6 +21,7 @@ pub use sync::*;
 pub mod image;
 pub use image::*;
 
+pub use ash::vk::Format as Format;
 
 #[cfg(feature = "macros")]
 pub use plate_macros;

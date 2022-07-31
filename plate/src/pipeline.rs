@@ -2,10 +2,9 @@ use std::{ffi, sync::Arc};
 
 use ash::vk;
 
-use crate::{DescriptorSetLayout, Device, Swapchain};
+use crate::{DescriptorSetLayout, Device, Swapchain, Format};
 
 pub use vk::VertexInputRate as InputRate;
-pub use vk::Format as Format;
 
 pub struct VertexBindingDescription(vk::VertexInputBindingDescription);
 pub struct VertexAttributeDescription(vk::VertexInputAttributeDescription);
@@ -170,6 +169,13 @@ impl Pipeline {
         let dynamic_state = vk::PipelineDynamicStateCreateInfo::builder()
             .dynamic_states(&[vk::DynamicState::VIEWPORT, vk::DynamicState::SCISSOR]);
 
+        let stencil_state = vk::PipelineDepthStencilStateCreateInfo::builder()
+            .depth_test_enable(true)
+            .depth_write_enable(true)
+            .depth_compare_op(vk::CompareOp::LESS)
+            .depth_bounds_test_enable(false)
+            .stencil_test_enable(false);
+
         let pipeline_info = vk::GraphicsPipelineCreateInfo::builder()
             .stages(&stage_infos)
             .vertex_input_state(&vertex_info)
@@ -181,7 +187,8 @@ impl Pipeline {
             .layout(layout)
             .render_pass(swapchain.render_pass)
             .dynamic_state(&dynamic_state)
-            .subpass(0);
+            .subpass(0)
+            .depth_stencil_state(&stencil_state);
 
         let pipeline = unsafe {
             device.create_graphics_pipelines(vk::PipelineCache::null(), &[*pipeline_info], None).unwrap()[0]

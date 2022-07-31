@@ -2,10 +2,12 @@ use std::sync::Arc;
 
 use ash::vk;
 
-use crate::{Buffer, Device, command::*, PipelineStage, sync::*};
+use crate::{Buffer, Device, command::*, PipelineStage, sync::*, Format};
 
 pub use vk::Filter as Filter;
 pub use vk::SamplerAddressMode as SamplerAddressMode;
+pub use vk::ImageUsageFlags as ImageUsageFlags;
+pub use vk::ImageAspectFlags as ImageAspectFlags;
 
 pub struct SamplerFilter {
     pub min: Filter,
@@ -96,7 +98,7 @@ pub struct Image {
     device: Arc<Device>,
     pub image: vk::Image,
     mem: vk::DeviceMemory,
-    view: vk::ImageView,
+    pub view: vk::ImageView,
     pub width: u32,
     pub height: u32,
 }
@@ -111,20 +113,9 @@ impl Drop for Image {
     }
 }
 
+//TODO move mem requirements stuff to device also in buffer
 impl Image {
-    pub fn new(device: &Arc<Device>, cmd_pool: &CommandPool, width: u32, height: u32, data: &[u8]) -> Result<Self, vk::Result> {
-        let mut staging = Buffer::new(
-            device,
-            (width * height * 4) as usize,
-            vk::BufferUsageFlags::TRANSFER_SRC,
-            vk::SharingMode::EXCLUSIVE,
-            vk::MemoryPropertyFlags::HOST_VISIBLE | vk::MemoryPropertyFlags::HOST_COHERENT,
-        )?;
-
-        staging.map()?;
-        staging.write(data);
-        staging.unmap();
-
+    pub fn new(device: &Arc<Device>, width: u32, height: u32, format: Format, usage: ImageUsageFlags, image_aspect: ImageAspectFlags) -> Result<Self, vk::Result> {
         let image_info = vk::ImageCreateInfo::builder()
             .image_type(vk::ImageType::TYPE_2D)
             .extent(vk::Extent3D {
@@ -134,10 +125,10 @@ impl Image {
             })
             .mip_levels(1)
             .array_layers(1)
-            .format(vk::Format::R8G8B8A8_SRGB)
+            .format(format)
             .tiling(vk::ImageTiling::OPTIMAL)
             .initial_layout(vk::ImageLayout::UNDEFINED)
-            .usage(vk::ImageUsageFlags::TRANSFER_DST | vk::ImageUsageFlags::SAMPLED)
+            .usage(usage)
             .sharing_mode(vk::SharingMode::EXCLUSIVE)
             .samples(vk::SampleCountFlags::TYPE_1);
 
@@ -163,10 +154,6 @@ impl Image {
         let mem = unsafe { device.allocate_memory(&alloc_info, None)? };
         unsafe { device.bind_image_memory(image, mem, 0)? };
 
-        transition_layout(device, image, cmd_pool, vk::ImageLayout::UNDEFINED, vk::ImageLayout::TRANSFER_DST_OPTIMAL)?;
-        staging.copy_to_image(image, width, height, cmd_pool)?;
-        transition_layout(device, image, cmd_pool, vk::ImageLayout::TRANSFER_DST_OPTIMAL, vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL)?;
-
         let components = vk::ComponentMapping {
             r: vk::ComponentSwizzle::IDENTITY,
             g: vk::ComponentSwizzle::IDENTITY,
@@ -175,7 +162,7 @@ impl Image {
         };
 
         let subresource_range = *vk::ImageSubresourceRange::builder()
-            .aspect_mask(vk::ImageAspectFlags::COLOR)
+            .aspect_mask(image_aspect)
             .base_mip_level(0)
             .level_count(1)
             .base_array_layer(0)
@@ -184,7 +171,7 @@ impl Image {
         let view_info = vk::ImageViewCreateInfo::builder()
             .image(image)
             .view_type(vk::ImageViewType::TYPE_2D)
-            .format(vk::Format::R8G8B8A8_SRGB)
+            .format(format)
             .components(components)
             .subresource_range(subresource_range);
 
@@ -205,6 +192,47 @@ impl Image {
             .image_layout(vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL)
             .image_view(self.view)
             .sampler(sampler.sampler)
+    }
+}
+
+pub struct Texture(Image);
+
+impl std::ops::Deref for Texture {
+    type Target = Image;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl Texture {
+    pub fn new(device: &Arc<Device>, cmd_pool: &CommandPool, width: u32, height: u32, data: &[u8]) -> Result<Self, vk::Result> {
+        let mut staging = Buffer::new(
+            device,
+            (width * height * 4) as usize,
+            vk::BufferUsageFlags::TRANSFER_SRC,
+            vk::SharingMode::EXCLUSIVE,
+            vk::MemoryPropertyFlags::HOST_VISIBLE | vk::MemoryPropertyFlags::HOST_COHERENT,
+        )?;
+
+        staging.map()?;
+        staging.write(data);
+        staging.unmap();
+
+        let image = Image::new(
+            device,
+            width,
+            height,
+            Format::R8G8B8A8_SRGB,
+            ImageUsageFlags::TRANSFER_DST | ImageUsageFlags::SAMPLED,
+            ImageAspectFlags::COLOR,
+        )?;
+
+        transition_layout(device, image.image, cmd_pool, vk::ImageLayout::UNDEFINED, vk::ImageLayout::TRANSFER_DST_OPTIMAL)?;
+        staging.copy_to_image(image.image, width, height, cmd_pool)?;
+        transition_layout(device, image.image, cmd_pool, vk::ImageLayout::TRANSFER_DST_OPTIMAL, vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL)?;
+
+        Ok(Self(image))
     }
 }
 
