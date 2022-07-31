@@ -8,9 +8,7 @@ pub use vk::BufferUsageFlags as BufferUsageFlags;
 pub use vk::SharingMode as SharingMode;
 pub use vk::MemoryPropertyFlags as MemoryPropertyFlags;
 
-pub struct VertexBuffer<T> {
-    buffer: Buffer<T>,
-}
+pub struct VertexBuffer<T>(Buffer<T>);
 
 impl<T> VertexBuffer<T> {
     pub fn new(device: &Arc<Device>, data: &[T], cmd_pool: &CommandPool) -> Result<Self, vk::Result> {
@@ -37,18 +35,16 @@ impl<T> VertexBuffer<T> {
 
         staging.copy_to(&buffer, size, cmd_pool)?;
 
-        Ok(Self { buffer })
+        Ok(Self(buffer))
     }
 
     pub fn bind(&self, command_buffer: &CommandBuffer) {
-        let buffers = [self.buffer.buffer];
-        unsafe { self.buffer.device.cmd_bind_vertex_buffers(**command_buffer, 0, &buffers, &[0]) };
+        let buffers = [self.0.buffer];
+        unsafe { self.0.device.cmd_bind_vertex_buffers(**command_buffer, 0, &buffers, &[0]) };
     }
 }
 
-pub struct IndexBuffer<T> {
-    buffer: Buffer<T>,
-}
+pub struct IndexBuffer<T>(Buffer<T>);
 
 impl<T> IndexBuffer<T> {
     pub fn new(device: &Arc<Device>, data: &[T], cmd_pool: &CommandPool) -> Result<Self, vk::Result> {
@@ -75,14 +71,14 @@ impl<T> IndexBuffer<T> {
 
         staging.copy_to(&buffer, size, cmd_pool)?;
 
-        Ok(Self { buffer })
+        Ok(Self(buffer))
     }
 
     pub fn bind(&self, command_buffer: &CommandBuffer) {
         unsafe {
-            self.buffer.device.cmd_bind_index_buffer(
+            self.0.device.cmd_bind_index_buffer(
                 **command_buffer,
-                self.buffer.buffer,
+                self.0.buffer,
                 0,
                 vk::IndexType::UINT32,
             )
