@@ -36,3 +36,7 @@ path = "uniform_buffer.rs"
 [[example]]
 name = "texture"
 path = "texture.rs"
+
+[[example]]
+name = "camera"
+path = "camera.rs"
