@@ -22,6 +22,7 @@ pub mod image;
 pub use image::*;
 
 pub use ash::vk::Format as Format;
+pub use ash::vk::MemoryPropertyFlags as MemoryPropertyFlags;
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {

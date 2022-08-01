@@ -6,7 +6,6 @@ use crate::{Device, PipelineStage, command::*, sync::*, Error};
 
 pub use vk::BufferUsageFlags as BufferUsageFlags;
 pub use vk::SharingMode as SharingMode;
-pub use vk::MemoryPropertyFlags as MemoryPropertyFlags;
 
 pub struct VertexBuffer<T>(Buffer<T>);
 
@@ -113,7 +112,7 @@ impl<T> Buffer<T> {
         usage: vk::BufferUsageFlags,
         sharing_mode: vk::SharingMode,
         memory_properties: vk::MemoryPropertyFlags,
-    ) -> Result<Self, vk::Result> {
+    ) -> Result<Self, Error> {
         let size = mem::size_of::<T>() * instance_count;
 
         let buffer_info = vk::BufferCreateInfo::builder()
@@ -124,17 +123,7 @@ impl<T> Buffer<T> {
         let buffer = unsafe { device.create_buffer(&buffer_info, None)? };
 
         let mem_requirements = unsafe { device.get_buffer_memory_requirements(buffer) };
-        let mem_properties = unsafe { device.instance.get_physical_device_memory_properties(device.physical_device) };
-        let mem_type_index = mem_properties
-            .memory_types
-            .iter()
-            .enumerate()
-            .find(|(i, ty)| {
-                mem_requirements.memory_type_bits & (1 << i) > 0
-                    && ty.property_flags.contains(memory_properties)
-            })
-            .unwrap()
-            .0;
+        let mem_type_index = device.memory_type_index(mem_requirements, memory_properties)?;
 
         let alloc_info = vk::MemoryAllocateInfo::builder()
             .allocation_size(mem_requirements.size)

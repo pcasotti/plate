@@ -2,12 +2,14 @@ use std::{fmt, ops, sync::Arc};
 
 use ash::{extensions::khr, vk};
 
-use crate::{Surface, Instance, CommandBuffer, Semaphore, Fence, Error};
+use crate::{Surface, Instance, CommandBuffer, Semaphore, Fence, Error, MemoryPropertyFlags};
 
 #[derive(thiserror::Error, Debug)]
 pub enum DeviceError {
     #[error("{0}")]
     QueueNotFound(QueueType),
+    #[error("{0:?}")]
+    MemoryTypeNotFound(MemoryPropertyFlags),
     #[error("No suitable device was found")]
     NoDeviceSuitable,
 }
@@ -177,6 +179,20 @@ impl Device {
 
     pub fn device_wait_idle(&self) -> Result<(), vk::Result> {
         unsafe { self.device.device_wait_idle() }
+    }
+
+    pub fn memory_type_index(&self, mem_requirements: vk::MemoryRequirements, memory_properties: MemoryPropertyFlags) -> Result<usize, Error> {
+        let mem_properties = unsafe { self.instance.get_physical_device_memory_properties(self.physical_device) };
+        mem_properties
+            .memory_types
+            .iter()
+            .enumerate()
+            .find(|(i, ty)| {
+                mem_requirements.memory_type_bits & (1 << i) > 0
+                    && ty.property_flags.contains(memory_properties)
+            })
+            .map(|(i, _)| i)
+            .ok_or(DeviceError::MemoryTypeNotFound(memory_properties).into())
     }
 }
 

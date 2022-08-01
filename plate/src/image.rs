@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use ash::vk;
 
-use crate::{Buffer, Device, command::*, PipelineStage, sync::*, Format, Error};
+use crate::{Buffer, Device, command::*, PipelineStage, sync::*, Format, Error, MemoryPropertyFlags};
 
 pub use vk::Filter as Filter;
 pub use vk::SamplerAddressMode as SamplerAddressMode;
@@ -113,9 +113,8 @@ impl Drop for Image {
     }
 }
 
-//TODO move mem requirements stuff to device also in buffer
 impl Image {
-    pub fn new(device: &Arc<Device>, width: u32, height: u32, format: Format, usage: ImageUsageFlags, image_aspect: ImageAspectFlags) -> Result<Self, vk::Result> {
+    pub fn new(device: &Arc<Device>, width: u32, height: u32, format: Format, usage: ImageUsageFlags, image_aspect: ImageAspectFlags) -> Result<Self, Error> {
         let image_info = vk::ImageCreateInfo::builder()
             .image_type(vk::ImageType::TYPE_2D)
             .extent(vk::Extent3D {
@@ -135,17 +134,7 @@ impl Image {
         let image = unsafe { device.create_image(&image_info, None)? };
 
         let mem_requirements = unsafe { device.get_image_memory_requirements(image) };
-        let mem_properties = unsafe { device.instance.get_physical_device_memory_properties(device.physical_device) };
-        let mem_type_index = mem_properties
-            .memory_types
-            .iter()
-            .enumerate()
-            .find(|(i, ty)| {
-                mem_requirements.memory_type_bits & (1 << i) > 0
-                    && ty.property_flags.contains(vk::MemoryPropertyFlags::DEVICE_LOCAL)
-            })
-            .unwrap()
-            .0;
+        let mem_type_index = device.memory_type_index(mem_requirements, MemoryPropertyFlags::DEVICE_LOCAL)?;
 
         let alloc_info = vk::MemoryAllocateInfo::builder()
             .allocation_size(mem_requirements.size)

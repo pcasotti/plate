@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use ash::{extensions::khr, vk};
 
-use crate::{Device, sync::*, image::*};
+use crate::{Device, sync::*, image::*, Error};
 
 pub struct Swapchain(Swap);
 
@@ -15,11 +15,11 @@ impl std::ops::Deref for Swapchain {
 }
 
 impl Swapchain {
-    pub fn new(device: &Arc<Device>, window: &winit::window::Window, old_swapchain: Option<&Self>) -> Result<Self, vk::Result> {
+    pub fn new(device: &Arc<Device>, window: &winit::window::Window, old_swapchain: Option<&Self>) -> Result<Self, Error> {
         Ok(Self(Swap::new(device, window, old_swapchain)?))
     }
 
-    pub fn recreate(&mut self, window: &winit::window::Window) -> Result<(), vk::Result> {
+    pub fn recreate(&mut self, window: &winit::window::Window) -> Result<(), Error> {
         self.0.device.device_wait_idle()?;
         Ok(self.0 = Swap::new(&self.0.device, window, Some(&self))?)
     }
@@ -36,6 +36,7 @@ pub struct Swap {
     images: Vec<vk::Image>,
     image_views: Vec<vk::ImageView>,
 
+    #[allow(dead_code)]
     depth_image: Image,
 
     pub render_pass: vk::RenderPass,
@@ -62,7 +63,7 @@ impl Swap {
         device: &Arc<Device>,
         window: &winit::window::Window,
         old_swapchain: Option<&Swapchain>,
-    ) -> Result<Self, vk::Result> {
+    ) -> Result<Self, Error> {
         let surface_capabilities = unsafe {
             device
                 .surface
@@ -177,7 +178,6 @@ impl Swap {
             })
             .collect::<Result<Vec<vk::ImageView>, _>>()?;
 
-        //TODO create a device function for this
         let depth_format = [
             vk::Format::D32_SFLOAT,
             vk::Format::D32_SFLOAT_S8_UINT,
