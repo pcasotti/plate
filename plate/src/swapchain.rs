@@ -323,18 +323,18 @@ impl Swap {
         unsafe { self.device.cmd_end_render_pass(command_buffer) }
     }
 
-    pub fn next_image(&self, semaphore: &Semaphore) -> Result<(u32, bool), vk::Result> {
-        unsafe {
+    pub fn next_image(&self, semaphore: &Semaphore) -> Result<(u32, bool), Error> {
+        Ok(unsafe {
             self.swapchain_loader.acquire_next_image(
                 self.swapchain,
                 u64::MAX,
                 **semaphore,
                 vk::Fence::null(),
-            )
-        }
+            )?
+        })
     }
 
-    pub fn present(&self, image_index: u32, wait_semaphore: &Semaphore) -> Result<bool, vk::Result> {
+    pub fn present(&self, image_index: u32, wait_semaphore: &Semaphore) -> Result<bool, Error> {
         let swapchains = [self.swapchain];
         let wait_semaphores = [**wait_semaphore];
         let image_indices = [image_index];
@@ -344,7 +344,7 @@ impl Swap {
             .swapchains(&swapchains)
             .image_indices(&image_indices);
 
-        unsafe { self.swapchain_loader.queue_present(self.device.present_queue.queue, &present_info) }
+        Ok(unsafe { self.swapchain_loader.queue_present(self.device.present_queue.queue, &present_info)? })
     }
 
     pub fn image_count(&self) -> usize {

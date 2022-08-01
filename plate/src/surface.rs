@@ -1,6 +1,6 @@
 use ash::{extensions::khr, vk};
 
-use crate::instance;
+use crate::{Instance, Error};
 
 pub struct Surface {
     pub surface_loader: khr::Surface,
@@ -18,9 +18,9 @@ impl Drop for Surface {
 impl Surface {
     pub fn new(
         entry: &ash::Entry,
-        instance: &instance::Instance,
+        instance: &Instance,
         window: &winit::window::Window,
-    ) -> Result<Self, vk::Result> {
+    ) -> Result<Self, Error> {
         let surface_loader = khr::Surface::new(&entry, &instance);
         let surface = unsafe { ash_window::create_surface(&entry, &instance, &window, None)? };
 

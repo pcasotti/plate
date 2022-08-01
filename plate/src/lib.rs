@@ -1,4 +1,3 @@
-//TODO: change vk::Result to Error
 pub mod buffer;
 pub use buffer::*;
 pub mod debug;
@@ -32,6 +31,8 @@ pub enum Error {
     DeviceError(#[from] DeviceError),
     #[error("{0}")]
     SwapchainError(#[from] SwapchainError),
+    #[error("{0}")]
+    InstanceError(#[from] InstanceError),
 }
 
 #[cfg(feature = "macros")]

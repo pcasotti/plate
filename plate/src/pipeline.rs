@@ -2,7 +2,7 @@ use std::{ffi, sync::Arc};
 
 use ash::vk;
 
-use crate::{DescriptorSetLayout, Device, Swapchain, Format};
+use crate::{DescriptorSetLayout, Device, Swapchain, Format, Error};
 
 pub use vk::VertexInputRate as InputRate;
 
@@ -80,7 +80,7 @@ impl Pipeline {
         vert_code: &[u32],
         frag_code: &[u32],
         parameters: &PipelineParameters,
-    ) -> Result<Self, vk::Result> {
+    ) -> Result<Self, Error> {
         let binding_descriptions: Vec<_> = parameters.vertex_binding_descriptions.iter().map(|b| b.0).collect();
         let attribute_descriptions: Vec<_> = parameters.vertex_attribute_descriptions.iter().map(|a| a.0).collect();
 

@@ -150,7 +150,7 @@ impl<T> Buffer<T> {
             .range((mem::size_of::<T>()*self.instance_count) as u64)
     }
 
-    pub fn map(&mut self) -> Result<(), vk::Result> {
+    pub fn map(&mut self) -> Result<(), Error> {
         if self.mapped.is_some() {
             panic!("buffer memory already mapped")
         }

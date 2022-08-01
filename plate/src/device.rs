@@ -177,8 +177,8 @@ impl Device {
         Ok(unsafe { self.device.queue_submit(queue.queue, &submit_infos, fence)? })
     }
 
-    pub fn device_wait_idle(&self) -> Result<(), vk::Result> {
-        unsafe { self.device.device_wait_idle() }
+    pub fn device_wait_idle(&self) -> Result<(), Error> {
+        Ok(unsafe { self.device.device_wait_idle()? })
     }
 
     pub fn memory_type_index(&self, mem_requirements: vk::MemoryRequirements, memory_properties: MemoryPropertyFlags) -> Result<usize, Error> {

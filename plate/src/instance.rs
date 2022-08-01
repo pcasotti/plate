@@ -1,12 +1,10 @@
 use ash::{extensions::ext, vk};
 use std::ffi;
 
-use crate::debug;
+use crate::{debug, Error};
 
 #[derive(thiserror::Error, Debug)]
 pub enum InstanceError {
-    #[error("{0}")]
-    VulkanError(#[from] vk::Result),
     #[error("Error creating C string: {0}")]
     NulError(#[from] ffi::NulError),
 }
@@ -84,9 +82,9 @@ impl Instance {
         entry: &ash::Entry,
         window: &winit::window::Window,
         params: &InstanceParameters,
-    ) -> Result<Self, InstanceError> {
-        let app_name = ffi::CString::new(params.app_name.clone())?;
-        let engine_name = ffi::CString::new(params.engine_name.clone())?;
+    ) -> Result<Self, Error> {
+        let app_name = ffi::CString::new(params.app_name.clone()).map_err(|e| InstanceError::from(e))?;
+        let engine_name = ffi::CString::new(params.engine_name.clone()).map_err(|e| InstanceError::from(e))?;
         let app_info = vk::ApplicationInfo::builder()
             .application_name(&app_name)
             .application_version(vk::make_api_version(
@@ -112,7 +110,7 @@ impl Instance {
         let layers = layers
             .into_iter()
             .map(|layer| ffi::CString::new(layer))
-            .collect::<Result<Vec<_>, _>>()?;
+            .collect::<Result<Vec<_>, _>>().map_err(|e| InstanceError::from(e))?;
         let layers = layers
             .iter()
             .map(|layer| layer.as_ptr())
@@ -124,7 +122,7 @@ impl Instance {
             .extra_extensions
             .iter()
             .map(|extension| ffi::CString::new(extension.clone()))
-            .collect::<Result<Vec<_>, _>>()?;
+            .collect::<Result<Vec<_>, _>>().map_err(|e| InstanceError::from(e))?;
         extra_extensions
             .into_iter()
             .for_each(|extension| extensions.push(extension.as_ptr()));

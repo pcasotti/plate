@@ -2,6 +2,8 @@ use std::ffi;
 
 use ash::{extensions::ext, vk};
 
+use crate::Error;
+
 pub struct Debugger {
     debug_utils: ext::DebugUtils,
     debug_messenger: vk::DebugUtilsMessengerEXT,
@@ -17,7 +19,7 @@ impl Drop for Debugger {
 }
 
 impl Debugger {
-    pub fn new(entry: &ash::Entry, instance: &ash::Instance) -> Result<Self, vk::Result> {
+    pub fn new(entry: &ash::Entry, instance: &ash::Instance) -> Result<Self, Error> {
         let debug_utils = ext::DebugUtils::new(entry, instance);
 
         let debug_messenger_info = debug_messenger_info();

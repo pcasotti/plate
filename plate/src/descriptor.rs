@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use ash::vk;
 
-use crate::{Buffer, Device, CommandBuffer, image::*};
+use crate::{Buffer, Device, CommandBuffer, image::*, Error};
 
 pub use vk::DescriptorType;
 pub use vk::ShaderStageFlags as ShaderStage;
@@ -37,7 +37,7 @@ impl DescriptorPoolBuilder {
         self
     }
 
-    pub fn build(&self, device: &Arc<Device>) -> Result<DescriptorPool, vk::Result> {
+    pub fn build(&self, device: &Arc<Device>) -> Result<DescriptorPool, Error> {
         let max_sets = self.max_sets.unwrap_or(self.sizes.iter().map(|size| size.count).sum());
         DescriptorPool::new(device, &self.sizes, max_sets)
     }
@@ -65,7 +65,7 @@ impl DescriptorPool {
         device: &Arc<Device>,
         sizes: &[PoolSize],
         max_sets: u32,
-    ) -> Result<Self, vk::Result> {
+    ) -> Result<Self, Error> {
         let pool_sizes = sizes
             .iter()
             .map(|size| {
@@ -109,7 +109,7 @@ impl Drop for DescriptorSetLayout {
 }
 
 impl DescriptorSetLayout {
-    pub fn new(device: &Arc<Device>, bindings: &[LayoutBinding]) -> Result<Self, vk::Result> {
+    pub fn new(device: &Arc<Device>, bindings: &[LayoutBinding]) -> Result<Self, Error> {
         let bindings = bindings
             .iter()
             .map(|binding| {
@@ -182,7 +182,7 @@ impl DescriptorAllocator {
         &mut self,
         layout: &DescriptorSetLayout,
         pool: &DescriptorPool,
-    ) -> Result<DescriptorSet, vk::Result> {
+    ) -> Result<DescriptorSet, Error> {
         let layouts = [layout.layout];
         let alloc_info = vk::DescriptorSetAllocateInfo::builder()
             .descriptor_pool(pool.pool)

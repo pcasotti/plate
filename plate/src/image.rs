@@ -67,7 +67,7 @@ impl Drop for Sampler {
 }
 
 impl Sampler {
-    pub fn new(device: &Arc<Device>, params: &SamplerParams) -> Result<Self, vk::Result> {
+    pub fn new(device: &Arc<Device>, params: &SamplerParams) -> Result<Self, Error> {
         let sampler_info = vk::SamplerCreateInfo::builder()
             .mag_filter(params.filter.min)
             .min_filter(params.filter.mag)

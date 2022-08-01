@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use ash::vk;
 
-use crate::Device;
+use crate::{Device, Error};
 
 pub use vk::FenceCreateFlags as FenceFlags;
 pub use vk::SemaphoreCreateFlags as SemaphoreFlags;
@@ -37,7 +37,7 @@ impl std::ops::Deref for Fence {
 }
 
 impl Fence {
-    pub fn new(device: &Arc<Device>, flags: FenceFlags) -> Result<Self, vk::Result> {
+    pub fn new(device: &Arc<Device>, flags: FenceFlags) -> Result<Self, Error> {
         let info = vk::FenceCreateInfo::builder().flags(flags);
         let fence = unsafe { device.create_fence(&info, None)? };
 
@@ -47,18 +47,16 @@ impl Fence {
         })
     }
 
-    pub fn wait(&self) -> Result<(), vk::Result> {
-        if let Self::Fence { device, fence } = self {
-            return unsafe { device.wait_for_fences(&[*fence], true, u64::MAX) }
-        }
-        Ok(())
+    pub fn wait(&self) -> Result<(), Error> {
+        Ok(if let Self::Fence { device, fence } = self {
+            unsafe { device.wait_for_fences(&[*fence], true, u64::MAX)? }
+        })
     }
 
-    pub fn reset(&self) -> Result<(), vk::Result> {
-        if let Self::Fence { device, fence } = self {
-            return unsafe { device.reset_fences(&[*fence]) }
-        }
-        Ok(())
+    pub fn reset(&self) -> Result<(), Error> {
+        Ok(if let Self::Fence { device, fence } = self {
+            unsafe { device.reset_fences(&[*fence])? }
+        })
     }
 }
 
@@ -92,7 +90,7 @@ impl std::ops::Deref for Semaphore {
 }
 
 impl Semaphore {
-    pub fn new(device: &Arc<Device>, flags: SemaphoreFlags) -> Result<Self, vk::Result> {
+    pub fn new(device: &Arc<Device>, flags: SemaphoreFlags) -> Result<Self, Error> {
         let info = vk::SemaphoreCreateInfo::builder().flags(flags);
         let semaphore = unsafe { device.create_semaphore(&info, None)? };
 

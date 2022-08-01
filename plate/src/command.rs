@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use ash::vk;
 
-use crate::Device;
+use crate::{Device, Error};
 
 pub use vk::CommandBufferLevel as CommandBufferLevel;
 pub use vk::CommandBufferUsageFlags as CommandBufferUsageFlags;
@@ -29,7 +29,7 @@ impl Drop for CommandPool {
 }
 
 impl CommandPool {
-    pub fn new(device: &Arc<Device>) -> Result<Self, vk::Result> {
+    pub fn new(device: &Arc<Device>) -> Result<Self, Error> {
         let pool_info = vk::CommandPoolCreateInfo::builder()
             .flags(vk::CommandPoolCreateFlags::RESET_COMMAND_BUFFER)
             .queue_family_index(device.graphics_queue.family);
@@ -42,7 +42,7 @@ impl CommandPool {
         })
     }
 
-    pub fn alloc_cmd_buffers(&self, level: CommandBufferLevel, cmd_buffer_count: u32) -> Result<Vec<CommandBuffer>, vk::Result> {
+    pub fn alloc_cmd_buffers(&self, level: CommandBufferLevel, cmd_buffer_count: u32) -> Result<Vec<CommandBuffer>, Error> {
         let alloc_info = vk::CommandBufferAllocateInfo::builder()
             .command_pool(self.cmd_pool)
             .level(level)
@@ -54,7 +54,7 @@ impl CommandPool {
             .collect())
     }
 
-    pub fn alloc_cmd_buffer(&self, level: CommandBufferLevel) -> Result<CommandBuffer, vk::Result> {
+    pub fn alloc_cmd_buffer(&self, level: CommandBufferLevel) -> Result<CommandBuffer, Error> {
         Ok(self.alloc_cmd_buffers(level, 1)?.swap_remove(0))
     }
 }
@@ -82,14 +82,14 @@ impl Drop for CommandBuffer {
 }
 
 impl CommandBuffer {
-    pub fn record<F: FnOnce()>(&self, flags: CommandBufferUsageFlags, f: F) -> Result<(), vk::Result> {
+    pub fn record<F: FnOnce()>(&self, flags: CommandBufferUsageFlags, f: F) -> Result<(), Error> {
         self.begin(flags)?;
         f();
         self.end()?;
         Ok(())
     }
 
-    fn begin(&self, flags: CommandBufferUsageFlags) -> Result<(), vk::Result> {
+    fn begin(&self, flags: CommandBufferUsageFlags) -> Result<(), Error> {
         let info = vk::CommandBufferBeginInfo::builder().flags(flags);
         unsafe {
             self.device.reset_command_buffer(self.cmd_buffer, vk::CommandBufferResetFlags::empty())?;
@@ -98,7 +98,7 @@ impl CommandBuffer {
         Ok(())
     }
 
-    fn end(&self) -> Result<(), vk::Result> {
+    fn end(&self) -> Result<(), Error> {
         unsafe { self.device.end_command_buffer(self.cmd_buffer)? };
         Ok(())
     }
