@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use ash::vk;
 
-use crate::{Buffer, Device, command::*, PipelineStage, sync::*, Format};
+use crate::{Buffer, Device, command::*, PipelineStage, sync::*, Format, Error};
 
 pub use vk::Filter as Filter;
 pub use vk::SamplerAddressMode as SamplerAddressMode;
@@ -206,7 +206,7 @@ impl std::ops::Deref for Texture {
 }
 
 impl Texture {
-    pub fn new(device: &Arc<Device>, cmd_pool: &CommandPool, width: u32, height: u32, data: &[u8]) -> Result<Self, vk::Result> {
+    pub fn new(device: &Arc<Device>, cmd_pool: &CommandPool, width: u32, height: u32, data: &[u8]) -> Result<Self, Error> {
         let mut staging = Buffer::new(
             device,
             (width * height * 4) as usize,

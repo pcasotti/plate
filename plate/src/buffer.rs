@@ -2,7 +2,7 @@ use std::{ffi, marker, mem, sync::Arc};
 
 use ash::vk;
 
-use crate::{Device, PipelineStage, command::*, sync::*};
+use crate::{Device, PipelineStage, command::*, sync::*, Error};
 
 pub use vk::BufferUsageFlags as BufferUsageFlags;
 pub use vk::SharingMode as SharingMode;
@@ -11,7 +11,7 @@ pub use vk::MemoryPropertyFlags as MemoryPropertyFlags;
 pub struct VertexBuffer<T>(Buffer<T>);
 
 impl<T> VertexBuffer<T> {
-    pub fn new(device: &Arc<Device>, data: &[T], cmd_pool: &CommandPool) -> Result<Self, vk::Result> {
+    pub fn new(device: &Arc<Device>, data: &[T], cmd_pool: &CommandPool) -> Result<Self, Error> {
         let size = (mem::size_of::<T>() * data.len()) as u64;
         let mut staging = Buffer::new(
             device,
@@ -47,7 +47,7 @@ impl<T> VertexBuffer<T> {
 pub struct IndexBuffer<T>(Buffer<T>);
 
 impl<T> IndexBuffer<T> {
-    pub fn new(device: &Arc<Device>, data: &[T], cmd_pool: &CommandPool) -> Result<Self, vk::Result> {
+    pub fn new(device: &Arc<Device>, data: &[T], cmd_pool: &CommandPool) -> Result<Self, Error> {
         let size = (mem::size_of::<T>() * data.len()) as u64;
         let mut staging = Buffer::new(
             device,
@@ -184,27 +184,21 @@ impl<T> Buffer<T> {
     }
 
     pub fn write(&mut self, data: &[T]) {
-        if self.mapped.is_none() {
-            panic!("cannot write to unmapped buffer")
-        }
         unsafe {
             data.as_ptr()
-                .copy_to_nonoverlapping(self.mapped.unwrap() as *mut _, data.len())
+                .copy_to_nonoverlapping(self.mapped.expect("cannot write to unmapped buffer") as *mut _, data.len())
         };
     }
 
     pub fn write_index(&mut self, data: &[T], index: usize) {
         assert!(index < self.instance_count);
-        if self.mapped.is_none() {
-            panic!("cannot write to unmapped buffer")
-        }
         unsafe {
             data.as_ptr()
-                .copy_to_nonoverlapping((self.mapped.unwrap() as *mut T).offset(index as isize), data.len())
+                .copy_to_nonoverlapping((self.mapped.expect("cannot write to unmapped buffer") as *mut T).offset(index as isize), data.len())
         };
     }
 
-    pub fn copy_to(&self, target: &Buffer<T>, size: vk::DeviceSize, cmd_pool: &CommandPool) -> Result<(), vk::Result> {
+    pub fn copy_to(&self, target: &Buffer<T>, size: vk::DeviceSize, cmd_pool: &CommandPool) -> Result<(), Error> {
         let command_buffer = cmd_pool.alloc_cmd_buffer(CommandBufferLevel::PRIMARY)?;
         command_buffer.record(CommandBufferUsageFlags::ONE_TIME_SUBMIT, || {
             let regions = [*vk::BufferCopy::builder().size(size)];
@@ -218,12 +212,11 @@ impl<T> Buffer<T> {
             };
         })?;
 
-        self.device.queue_submit(self.device.graphics_queue, &command_buffer, PipelineStage::empty(), &Semaphore::None, &Semaphore::None, &Fence::None).unwrap();
-        unsafe { self.device.queue_wait_idle(self.device.graphics_queue.queue) }
+        self.device.queue_submit(self.device.graphics_queue, &command_buffer, PipelineStage::empty(), &Semaphore::None, &Semaphore::None, &Fence::None)?;
+        Ok(unsafe { self.device.queue_wait_idle(self.device.graphics_queue.queue)? })
     }
 
-    //TODO join functions with a trait
-    pub fn copy_to_image(&self, image: vk::Image, width: u32, height: u32, cmd_pool: &CommandPool) -> Result<(), vk::Result> {
+    pub fn copy_to_image(&self, image: vk::Image, width: u32, height: u32, cmd_pool: &CommandPool) -> Result<(), Error> {
         let cmd_buffer = cmd_pool.alloc_cmd_buffer(CommandBufferLevel::PRIMARY)?;
         cmd_buffer.record(CommandBufferUsageFlags::ONE_TIME_SUBMIT, || {
             let region = vk::BufferImageCopy::builder()
@@ -246,7 +239,7 @@ impl<T> Buffer<T> {
             unsafe { self.device.cmd_copy_buffer_to_image(*cmd_buffer, self.buffer, image, vk::ImageLayout::TRANSFER_DST_OPTIMAL, &[*region]) };
         })?;
 
-        self.device.queue_submit(self.device.graphics_queue, &cmd_buffer, PipelineStage::empty(), &Semaphore::None, &Semaphore::None, &Fence::None).unwrap();
-        unsafe { self.device.queue_wait_idle(self.device.graphics_queue.queue) }
+        self.device.queue_submit(self.device.graphics_queue, &cmd_buffer, PipelineStage::empty(), &Semaphore::None, &Semaphore::None, &Fence::None)?;
+        Ok(unsafe { self.device.queue_wait_idle(self.device.graphics_queue.queue)? })
     }
 }

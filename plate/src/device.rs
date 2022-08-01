@@ -2,12 +2,10 @@ use std::{fmt, ops, sync::Arc};
 
 use ash::{extensions::khr, vk};
 
-use crate::{Surface, Instance, CommandBuffer, Semaphore, Fence};
+use crate::{Surface, Instance, CommandBuffer, Semaphore, Fence, Error};
 
 #[derive(thiserror::Error, Debug)]
 pub enum DeviceError {
-    #[error("{0}")]
-    VulkanError(#[from] vk::Result),
     #[error("{0}")]
     QueueNotFound(QueueType),
     #[error("No suitable device was found")]
@@ -62,7 +60,7 @@ impl Device {
         instance: Instance,
         surface: Surface,
         params: &DeviceParameters,
-    ) -> Result<Arc<Self>, DeviceError> {
+    ) -> Result<Arc<Self>, Error> {
         let devices = unsafe { instance.enumerate_physical_devices()? };
         let physical_device = pick_device(&devices, &instance, params)?;
 
@@ -96,7 +94,7 @@ impl Device {
 
                 Ok(())
             })
-            .collect::<Result<_, DeviceError>>()?;
+            .collect::<Result<_, Error>>()?;
 
         let graphics_family =
             graphics_family.ok_or(DeviceError::QueueNotFound(QueueType::Graphics))? as u32;
@@ -150,7 +148,7 @@ impl Device {
         }))
     }
 
-    pub fn queue_submit(&self, queue: Queue, command_buffer: &CommandBuffer, wait_stage: PipelineStage, wait_semaphore: &Semaphore, signal_semaphore: &Semaphore, fence: &Fence) -> Result<(), DeviceError> {
+    pub fn queue_submit(&self, queue: Queue, command_buffer: &CommandBuffer, wait_stage: PipelineStage, wait_semaphore: &Semaphore, signal_semaphore: &Semaphore, fence: &Fence) -> Result<(), Error> {
         let wait_semaphores = match wait_semaphore {
             Semaphore::Semaphore { device: _, semaphore: _} => vec![**wait_semaphore],
             Semaphore::None => vec![],
@@ -203,7 +201,7 @@ fn pick_device(
     devices: &Vec<vk::PhysicalDevice>,
     instance: &Instance,
     params: &DeviceParameters,
-) -> Result<vk::PhysicalDevice, DeviceError> {
+) -> Result<vk::PhysicalDevice, Error> {
     let devices = devices
         .iter()
         .filter(|device| {
@@ -212,7 +210,7 @@ fn pick_device(
         })
         .collect::<Vec<_>>();
     if devices.is_empty() {
-        return Err(DeviceError::NoDeviceSuitable);
+        return Err(DeviceError::NoDeviceSuitable.into());
     };
 
     let preferred_device = devices

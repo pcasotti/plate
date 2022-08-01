@@ -23,6 +23,14 @@ pub use image::*;
 
 pub use ash::vk::Format as Format;
 
+#[derive(thiserror::Error, Debug)]
+pub enum Error {
+    #[error("{0}")]
+    VulkanError(#[from] ash::vk::Result),
+    #[error("{0}")]
+    DeviceError(#[from] DeviceError),
+}
+
 #[cfg(feature = "macros")]
 pub use plate_macros;
 pub use memoffset;
