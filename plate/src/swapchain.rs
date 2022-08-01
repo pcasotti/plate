@@ -4,6 +4,12 @@ use ash::{extensions::khr, vk};
 
 use crate::{Device, sync::*, image::*, Error};
 
+#[derive(thiserror::Error, Debug)]
+pub enum SwapchainError {
+    #[error("No suitable depth format is available")]
+    NoSuitableDepthFormat,
+}
+
 pub struct Swapchain(Swap);
 
 impl std::ops::Deref for Swapchain {
@@ -186,7 +192,8 @@ impl Swap {
             .find(|format| {
                 let props = unsafe { device.instance.get_physical_device_format_properties(device.physical_device, *format) };
                 props.optimal_tiling_features.contains(vk::FormatFeatureFlags::DEPTH_STENCIL_ATTACHMENT)
-            }).unwrap();
+            })
+            .ok_or(SwapchainError::NoSuitableDepthFormat)?;
 
         let depth_image = Image::new(
             device,

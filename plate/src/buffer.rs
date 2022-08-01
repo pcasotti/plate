@@ -172,6 +172,7 @@ impl<T> Buffer<T> {
         }
     }
 
+    //TODO maybe use &mut to manage mapping and unmapping
     pub fn write(&mut self, data: &[T]) {
         unsafe {
             data.as_ptr()

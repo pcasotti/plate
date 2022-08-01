@@ -38,8 +38,7 @@ impl DescriptorPoolBuilder {
     }
 
     pub fn build(&self, device: &Arc<Device>) -> Result<DescriptorPool, vk::Result> {
-        let total_sets = self.sizes.iter().map(|size| size.count).sum();
-        let max_sets = self.max_sets.unwrap_or(total_sets);
+        let max_sets = self.max_sets.unwrap_or(self.sizes.iter().map(|size| size.count).sum());
         DescriptorPool::new(device, &self.sizes, max_sets)
     }
 }

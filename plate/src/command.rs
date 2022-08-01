@@ -55,7 +55,7 @@ impl CommandPool {
     }
 
     pub fn alloc_cmd_buffer(&self, level: CommandBufferLevel) -> Result<CommandBuffer, vk::Result> {
-        Ok(self.alloc_cmd_buffers(level, 1)?.pop().unwrap())
+        Ok(self.alloc_cmd_buffers(level, 1)?.swap_remove(0))
     }
 }
 

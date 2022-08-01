@@ -1,4 +1,4 @@
-//TODO: merge error types and get rid of all unwraps
+//TODO: change vk::Result to Error
 pub mod buffer;
 pub use buffer::*;
 pub mod debug;
@@ -13,7 +13,7 @@ pub use pipeline::*;
 pub mod surface;
 pub use surface::Surface;
 pub mod swapchain;
-pub use swapchain::Swapchain;
+pub use swapchain::*;
 pub mod command;
 pub use command::*;
 pub mod sync;
@@ -30,6 +30,8 @@ pub enum Error {
     VulkanError(#[from] ash::vk::Result),
     #[error("{0}")]
     DeviceError(#[from] DeviceError),
+    #[error("{0}")]
+    SwapchainError(#[from] SwapchainError),
 }
 
 #[cfg(feature = "macros")]

@@ -225,7 +225,7 @@ impl Texture {
     }
 }
 
-fn transition_layout(device: &Arc<Device>, image: vk::Image, cmd_pool: &CommandPool, old_layout: vk::ImageLayout, new_layout: vk::ImageLayout) -> Result<(), vk::Result> {
+fn transition_layout(device: &Arc<Device>, image: vk::Image, cmd_pool: &CommandPool, old_layout: vk::ImageLayout, new_layout: vk::ImageLayout) -> Result<(), Error> {
     let (src_access, src_stage) = match old_layout {
         vk::ImageLayout::UNDEFINED => (vk::AccessFlags::empty(), vk::PipelineStageFlags::TOP_OF_PIPE),
         vk::ImageLayout::TRANSFER_DST_OPTIMAL => (vk::AccessFlags::TRANSFER_WRITE, vk::PipelineStageFlags::TRANSFER),
@@ -263,6 +263,6 @@ fn transition_layout(device: &Arc<Device>, image: vk::Image, cmd_pool: &CommandP
         ) };
     })?;
 
-    device.queue_submit(device.graphics_queue, &cmd_buffer, PipelineStage::empty(), &Semaphore::None, &Semaphore::None, &Fence::None).unwrap();
-    unsafe { device.queue_wait_idle(device.graphics_queue.queue) }
+    device.queue_submit(device.graphics_queue, &cmd_buffer, PipelineStage::empty(), &Semaphore::None, &Semaphore::None, &Fence::None)?;
+    Ok(unsafe { device.queue_wait_idle(device.graphics_queue.queue)? })
 }

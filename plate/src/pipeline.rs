@@ -94,7 +94,7 @@ impl Pipeline {
             device.create_shader_module(&frag_shader_info, None)?
         };
 
-        let name = ffi::CString::new("main").unwrap();
+        let name = ffi::CString::new("main").expect("Should never fail to build \"main\" string");
 
         let stage_infos = [
             *vk::PipelineShaderStageCreateInfo::builder()
@@ -190,9 +190,10 @@ impl Pipeline {
             .subpass(0)
             .depth_stencil_state(&stencil_state);
 
-        let pipeline = unsafe {
-            device.create_graphics_pipelines(vk::PipelineCache::null(), &[*pipeline_info], None).unwrap()[0]
-        };
+        let pipeline = match unsafe { device.create_graphics_pipelines(vk::PipelineCache::null(), &[*pipeline_info], None) } {
+            Ok(p) => Ok(p[0]),
+            Err((_, e)) => Err(e)
+        }?;
 
         Ok(Self {
             device: Arc::clone(&device),
