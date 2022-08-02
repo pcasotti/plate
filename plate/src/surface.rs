@@ -17,12 +17,11 @@ impl Drop for Surface {
 
 impl Surface {
     pub fn new(
-        entry: &ash::Entry,
         instance: &Instance,
         window: &winit::window::Window,
     ) -> Result<Self, Error> {
-        let surface_loader = khr::Surface::new(&entry, &instance);
-        let surface = unsafe { ash_window::create_surface(&entry, &instance, &window, None)? };
+        let surface_loader = khr::Surface::new(&instance.entry, &instance);
+        let surface = unsafe { ash_window::create_surface(&instance.entry, &instance, &window, None)? };
 
         Ok(Self {
             surface_loader,

@@ -8,14 +8,11 @@ publish = false
 
 [dev-dependencies]
 plate = { path = "../plate" }
-ash = { version = "0.37", features = ["linked"] }
 winit = "0.26"
 vk-shader-macros = "0.2"
-thiserror = "1.0"
 glam = "0.21"
-memoffset = "0.6"
-tobj = "3.2"
 image = "0.24"
+memoffset = "0.6"
 
 [[example]]
 name = "triangle"

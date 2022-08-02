@@ -53,6 +53,7 @@ impl Default for InstanceParameters {
 
 pub struct Instance {
     instance: ash::Instance,
+    pub entry: ash::Entry,
     debug_utils: ext::DebugUtils,
     debug_messenger: vk::DebugUtilsMessengerEXT,
 }
@@ -77,10 +78,11 @@ impl Drop for Instance {
 
 impl Instance {
     pub fn new(
-        entry: &ash::Entry,
         window: &winit::window::Window,
         params: &InstanceParameters,
     ) -> Result<Self, Error> {
+        let entry = ash::Entry::linked();
+
         let app_name = ffi::CString::new(params.app_name.clone()).map_err(|e| InstanceError::from(e))?;
         let engine_name = ffi::CString::new(params.engine_name.clone()).map_err(|e| InstanceError::from(e))?;
         let app_info = vk::ApplicationInfo::builder()
@@ -142,6 +144,7 @@ impl Instance {
 
         Ok(Self {
             instance,
+            entry,
             debug_utils,
             debug_messenger,
         })
