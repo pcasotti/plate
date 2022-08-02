@@ -1,3 +1,9 @@
+#![doc = include_str!("../../README.md")]
+#![doc = "```ignore"]
+#![doc = include_str!("../../examples/triangle.rs")]
+#![doc = "```"]
+
+//TODO use pub(crate)
 pub mod buffer;
 pub use buffer::*;
 pub mod debug;
