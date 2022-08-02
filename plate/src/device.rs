@@ -119,7 +119,6 @@ impl Device {
         let features = vk::PhysicalDeviceFeatures::builder();
         let extensions = [khr::Swapchain::name().as_ptr()];
 
-        //TODO make a way to toggle spirv params and ensure api version
         let mut draw_params = vk::PhysicalDeviceShaderDrawParametersFeatures::builder()
             .shader_draw_parameters(true);
         let device_info = vk::DeviceCreateInfo::builder()

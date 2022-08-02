@@ -11,7 +11,6 @@ pub enum InstanceError {
 
 #[derive(Clone, Copy)]
 pub enum ApiVersion {
-    Type1_0,
     Type1_1,
     Type1_2,
     Type1_3,
@@ -21,7 +20,6 @@ impl Into<u32> for ApiVersion {
     fn into(self) -> u32 {
         use ApiVersion::*;
         match self {
-            Type1_0 => vk::API_VERSION_1_0,
             Type1_1 => vk::API_VERSION_1_1,
             Type1_2 => vk::API_VERSION_1_2,
             Type1_3 => vk::API_VERSION_1_3,
@@ -46,7 +44,7 @@ impl Default for InstanceParameters {
             app_version: (0, 1, 0, 0),
             engine_name: "wvk".into(),
             engine_version: (0, 1, 0, 0),
-            api_version: ApiVersion::Type1_1,
+            api_version: ApiVersion::Type1_2,
             extra_layers: vec![],
             extra_extensions: vec![],
         }
