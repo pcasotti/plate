@@ -80,17 +80,19 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         1
     )?;
 
-    let mut ubo: plate::Buffer<Ubo> = plate::Buffer::new(
+    let ubo: plate::Buffer<Ubo> = plate::Buffer::new(
         &device,
         1,
         plate::BufferUsageFlags::UNIFORM_BUFFER,
         plate::SharingMode::EXCLUSIVE,
         plate::MemoryPropertyFlags::HOST_VISIBLE | plate::MemoryPropertyFlags::HOST_VISIBLE,
     )?;
-    ubo.map()?;
+
     let descriptor_set = plate::DescriptorAllocator::new(&device)
         .add_buffer_binding(0, plate::DescriptorType::UNIFORM_BUFFER, &ubo)
         .allocate(&set_layout, &descriptor_pool)?;
+
+    let mut ubo = ubo.map()?;
 
     let fence = plate::Fence::new(&device, plate::FenceFlags::SIGNALED)?;
     let acquire_sem = plate::Semaphore::new(&device, plate::SemaphoreFlags::empty())?;

@@ -196,7 +196,7 @@ impl std::ops::Deref for Texture {
 
 impl Texture {
     pub fn new(device: &Arc<Device>, cmd_pool: &CommandPool, width: u32, height: u32, data: &[u8]) -> Result<Self, Error> {
-        let mut staging = Buffer::new(
+        let staging = Buffer::new(
             device,
             (width * height * 4) as usize,
             vk::BufferUsageFlags::TRANSFER_SRC,
@@ -204,9 +204,9 @@ impl Texture {
             vk::MemoryPropertyFlags::HOST_VISIBLE | vk::MemoryPropertyFlags::HOST_COHERENT,
         )?;
 
-        staging.map()?;
-        staging.write(data);
-        staging.unmap();
+        let mut mapped = staging.map()?;
+        mapped.write(data);
+        let staging = mapped.unmap();
 
         let image = Image::new(
             device,

@@ -12,7 +12,7 @@ pub struct VertexBuffer<T>(Buffer<T>);
 impl<T> VertexBuffer<T> {
     pub fn new(device: &Arc<Device>, data: &[T], cmd_pool: &CommandPool) -> Result<Self, Error> {
         let size = (mem::size_of::<T>() * data.len()) as u64;
-        let mut staging = Buffer::new(
+        let staging = Buffer::new(
             device,
             data.len(),
             vk::BufferUsageFlags::TRANSFER_SRC,
@@ -20,9 +20,9 @@ impl<T> VertexBuffer<T> {
             vk::MemoryPropertyFlags::HOST_VISIBLE | vk::MemoryPropertyFlags::HOST_COHERENT,
         )?;
 
-        staging.map()?;
-        staging.write(data);
-        staging.unmap();
+        let mut mapped = staging.map()?;
+        mapped.write(data);
+        let staging = mapped.unmap();
 
         let buffer = Buffer::new(
             device,
@@ -48,7 +48,7 @@ pub struct IndexBuffer<T>(Buffer<T>);
 impl<T> IndexBuffer<T> {
     pub fn new(device: &Arc<Device>, data: &[T], cmd_pool: &CommandPool) -> Result<Self, Error> {
         let size = (mem::size_of::<T>() * data.len()) as u64;
-        let mut staging = Buffer::new(
+        let staging = Buffer::new(
             device,
             data.len(),
             vk::BufferUsageFlags::TRANSFER_SRC,
@@ -56,9 +56,9 @@ impl<T> IndexBuffer<T> {
             vk::MemoryPropertyFlags::HOST_VISIBLE | vk::MemoryPropertyFlags::HOST_COHERENT,
         )?;
 
-        staging.map()?;
-        staging.write(data);
-        staging.unmap();
+        let mut mapped = staging.map()?;
+        mapped.write(data);
+        let staging = mapped.unmap();
 
         let buffer = Buffer::new(
             device,
@@ -85,11 +85,37 @@ impl<T> IndexBuffer<T> {
     }
 }
 
+pub struct MappedBuffer<T> {
+    buffer: Buffer<T>,
+    mapped: *mut ffi::c_void,
+}
+
+impl<T> MappedBuffer<T> {
+    pub fn unmap(self) -> Buffer<T> {
+        unsafe { self.buffer.device.unmap_memory(self.buffer.mem) };
+        self.buffer
+    }
+
+    pub fn write(&mut self, data: &[T]) {
+        unsafe {
+            data.as_ptr()
+                .copy_to_nonoverlapping(self.mapped as *mut _, data.len())
+        };
+    }
+
+    pub fn write_index(&mut self, data: &[T], index: usize) {
+        assert!(index < self.buffer.instance_count);
+        unsafe {
+            data.as_ptr()
+                .copy_to_nonoverlapping((self.mapped as *mut T).offset(index as isize), data.len())
+        };
+    }
+}
+
 pub struct Buffer<T> {
     device: Arc<Device>,
     buffer: vk::Buffer,
     mem: vk::DeviceMemory,
-    mapped: Option<*mut ffi::c_void>, 
     instance_count: usize,
 
     marker: marker::PhantomData<T>,
@@ -98,7 +124,6 @@ pub struct Buffer<T> {
 impl<T> Drop for Buffer<T> {
     fn drop(&mut self) {
         unsafe {
-            self.unmap();
             self.device.destroy_buffer(self.buffer, None);
             self.device.free_memory(self.mem, None);
         }
@@ -136,7 +161,6 @@ impl<T> Buffer<T> {
             device: Arc::clone(&device),
             buffer,
             mem,
-            mapped: None,
             instance_count,
 
             marker: marker::PhantomData,
@@ -150,42 +174,20 @@ impl<T> Buffer<T> {
             .range((mem::size_of::<T>()*self.instance_count) as u64)
     }
 
-    pub fn map(&mut self) -> Result<(), Error> {
-        if self.mapped.is_some() {
-            panic!("buffer memory already mapped")
-        }
-        self.mapped = Some(unsafe {
+    pub fn map(self) -> Result<MappedBuffer<T>, Error> {
+        let mapped = unsafe {
             self.device.map_memory(
                 self.mem,
                 0,
                 vk::WHOLE_SIZE,
                 vk::MemoryMapFlags::empty(),
             )?
-        });
-        Ok(())
-    }
-
-    pub fn unmap(&mut self) {
-        if self.mapped.is_some() {
-            unsafe { self.device.unmap_memory(self.mem) }
-            self.mapped = None;
-        }
-    }
-
-    //TODO maybe use &mut to manage mapping and unmapping
-    pub fn write(&mut self, data: &[T]) {
-        unsafe {
-            data.as_ptr()
-                .copy_to_nonoverlapping(self.mapped.expect("cannot write to unmapped buffer") as *mut _, data.len())
         };
-    }
-
-    pub fn write_index(&mut self, data: &[T], index: usize) {
-        assert!(index < self.instance_count);
-        unsafe {
-            data.as_ptr()
-                .copy_to_nonoverlapping((self.mapped.expect("cannot write to unmapped buffer") as *mut T).offset(index as isize), data.len())
-        };
+        
+        Ok(MappedBuffer {
+            buffer: self,
+            mapped,
+        })
     }
 
     pub fn copy_to(&self, target: &Buffer<T>, size: vk::DeviceSize, cmd_pool: &CommandPool) -> Result<(), Error> {

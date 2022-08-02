@@ -107,14 +107,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         2
     )?;
 
-    let mut ubo: plate::Buffer<Ubo> = plate::Buffer::new(
+    let ubo: plate::Buffer<Ubo> = plate::Buffer::new(
         &device,
         1,
         plate::BufferUsageFlags::UNIFORM_BUFFER,
         plate::SharingMode::EXCLUSIVE,
         plate::MemoryPropertyFlags::HOST_VISIBLE | plate::MemoryPropertyFlags::HOST_VISIBLE,
     )?;
-    ubo.map()?;
 
     let tex = image::open("examples/texture.jpg")?.flipv();
     let image = plate::Texture::new(&device, &cmd_pool, tex.width(), tex.height(), &tex.to_rgba8().into_raw())?;
@@ -130,6 +129,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .add_buffer_binding(0, plate::DescriptorType::UNIFORM_BUFFER, &ubo)
         .add_image_binding(1, plate::DescriptorType::COMBINED_IMAGE_SAMPLER, &image, &sampler)
         .allocate(&set_layout, &descriptor_pool)?;
+
+    let mut ubo = ubo.map()?;
 
     let fence = plate::Fence::new(&device, plate::FenceFlags::SIGNALED)?;
     let acquire_sem = plate::Semaphore::new(&device, plate::SemaphoreFlags::empty())?;
