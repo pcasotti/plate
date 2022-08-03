@@ -15,10 +15,17 @@ impl<T> VertexBuffer<T> {
     /// 
     /// # Examples
     /// 
-    /// ```
+    /// ```no_run
     /// struct Vertex(f32);
+    /// # let event_loop = winit::event_loop::EventLoop::new();
+    /// # let window = winit::window::WindowBuilder::new().build(&event_loop)?;
+    /// # let instance = plate::Instance::new(&window, &Default::default())?;
+    /// # let surface = plate::Surface::new(&instance, &window)?;
+    /// # let device = plate::Device::new(instance, surface, &Default::default())?;
+    /// # let cmd_pool = plate::CommandPool::new(&device)?;
     /// let vertices = [Vertex(0.0), Vertex(1.0)];
     /// let vertex_buffer = plate::VertexBuffer::new(&device, &vertices, &cmd_pool)?;
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// ```
     pub fn new(device: &Arc<Device>, data: &[T], cmd_pool: &CommandPool) -> Result<Self, Error> {
         let size = (mem::size_of::<T>() * data.len()) as u64;
@@ -55,12 +62,22 @@ impl<T> VertexBuffer<T> {
     /// 
     /// # Examples
     /// 
-    /// ```
-    /// let vertex_buffer = plate::VertexBuffer::new(..)?;
-    /// cmd_buffer.record(.., || {
-    ///     pipeline.bind(..);
-    ///     vertex_buffer.bind(&command_buffer);
-    /// })?;
+    /// ```no_run
+    /// # struct Vertex(f32);
+    /// # let event_loop = winit::event_loop::EventLoop::new();
+    /// # let window = winit::window::WindowBuilder::new().build(&event_loop)?;
+    /// # let instance = plate::Instance::new(&window, &Default::default())?;
+    /// # let surface = plate::Surface::new(&instance, &window)?;
+    /// # let device = plate::Device::new(instance, surface, &Default::default())?;
+    /// # let cmd_pool = plate::CommandPool::new(&device)?;
+    /// # let cmd_buffer = cmd_pool.alloc_cmd_buffer(plate::CommandBufferLevel::PRIMARY)?;
+    /// # let vertices = [Vertex(0.0), Vertex(1.0)];
+    /// let vertex_buffer = plate::VertexBuffer::new(&device, &vertices, &cmd_pool)?;
+    /// // cmd_buffer.record(.., || {
+    ///     // pipeline.bind(..);
+    ///     vertex_buffer.bind(&cmd_buffer);
+    /// // })?;
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// ```
     pub fn bind(&self, command_buffer: &CommandBuffer) {
         let buffers = [self.0.buffer];
@@ -76,9 +93,16 @@ impl<T> IndexBuffer<T> {
     /// 
     /// # Examples
     /// 
-    /// ```
+    /// ```no_run
+    /// # let event_loop = winit::event_loop::EventLoop::new();
+    /// # let window = winit::window::WindowBuilder::new().build(&event_loop)?;
+    /// # let instance = plate::Instance::new(&window, &Default::default())?;
+    /// # let surface = plate::Surface::new(&instance, &window)?;
+    /// # let device = plate::Device::new(instance, surface, &Default::default())?;
+    /// # let cmd_pool = plate::CommandPool::new(&device)?;
     /// let indices = [0, 1, 2];
-    /// let vertex_buffer = plate::IndexBuffer::new(&device, &vertices, &cmd_pool)?;
+    /// let index_buffer = plate::IndexBuffer::new(&device, &indices, &cmd_pool)?;
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// ```
     pub fn new(device: &Arc<Device>, data: &[T], cmd_pool: &CommandPool) -> Result<Self, Error> {
         let size = (mem::size_of::<T>() * data.len()) as u64;
@@ -115,14 +139,23 @@ impl<T> IndexBuffer<T> {
     /// 
     /// # Examples
     /// 
-    /// ```
-    /// let index_buffer = plate::IndexBuffer::new(..)?;
-    /// cmd_buffer.record(.., || {
-    ///     pipeline.bind(..);
-    ///     vertex_buffer.bind(..);
-    ///     index_buffer.bind(&command_buffer);
-    ///     command_buffer.draw_indexed(..);
-    /// })?;
+    /// ```no_run
+    /// # let event_loop = winit::event_loop::EventLoop::new();
+    /// # let window = winit::window::WindowBuilder::new().build(&event_loop)?;
+    /// # let instance = plate::Instance::new(&window, &Default::default())?;
+    /// # let surface = plate::Surface::new(&instance, &window)?;
+    /// # let device = plate::Device::new(instance, surface, &Default::default())?;
+    /// # let cmd_pool = plate::CommandPool::new(&device)?;
+    /// # let cmd_buffer = cmd_pool.alloc_cmd_buffer(plate::CommandBufferLevel::PRIMARY)?;
+    /// # let indices = [0, 1, 2];
+    /// let index_buffer = plate::IndexBuffer::new(&device, &indices, &cmd_pool)?;
+    /// // cmd_buffer.record(.., || {
+    ///     // pipeline.bind(..);
+    ///     // vertex_buffer.bind(..);
+    ///     index_buffer.bind(&cmd_buffer);
+    ///     // cmd_buffer.draw_indexed(..);
+    /// // })?;
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// ```
     pub fn bind(&self, command_buffer: &CommandBuffer) {
         unsafe {
@@ -147,11 +180,24 @@ impl<T> MappedBuffer<T> {
     /// 
     /// # Example
     /// 
-    /// ```
+    /// ```no_run
+    /// # let event_loop = winit::event_loop::EventLoop::new();
+    /// # let window = winit::window::WindowBuilder::new().build(&event_loop)?;
+    /// # let instance = plate::Instance::new(&window, &Default::default())?;
+    /// # let surface = plate::Surface::new(&instance, &window)?;
+    /// # let device = plate::Device::new(instance, surface, &Default::default())?;
+    /// # let buffer: plate::Buffer<u32> = plate::Buffer::new( // ..
+    ///     # &device,
+    ///     # 2,
+    ///     # plate::BufferUsageFlags::UNIFORM_BUFFER,
+    ///     # plate::SharingMode::EXCLUSIVE,
+    ///     # plate::MemoryPropertyFlags::HOST_VISIBLE | plate::MemoryPropertyFlags::HOST_VISIBLE,
+    /// # )?;
     /// // Create a MappedBuffer by mapping an existing Buffer
     /// let mapped = buffer.map()?;
     /// // Unmap the memory from the host
     /// let buffer = mapped.unmap();
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// ```
     pub fn unmap(self) -> Buffer<T> {
         unsafe { self.buffer.device.unmap_memory(self.buffer.mem) };
@@ -169,11 +215,24 @@ impl<T> MappedBuffer<T> {
     /// 
     /// # Example
     /// 
-    /// ```
+    /// ```no_run
+    /// # let event_loop = winit::event_loop::EventLoop::new();
+    /// # let window = winit::window::WindowBuilder::new().build(&event_loop)?;
+    /// # let instance = plate::Instance::new(&window, &Default::default())?;
+    /// # let surface = plate::Surface::new(&instance, &window)?;
+    /// # let device = plate::Device::new(instance, surface, &Default::default())?;
+    /// # let buffer: plate::Buffer<u32> = plate::Buffer::new( // ..
+    ///     # &device,
+    ///     # 2,
+    ///     # plate::BufferUsageFlags::UNIFORM_BUFFER,
+    ///     # plate::SharingMode::EXCLUSIVE,
+    ///     # plate::MemoryPropertyFlags::HOST_VISIBLE | plate::MemoryPropertyFlags::HOST_VISIBLE,
+    /// # )?;
     /// let data = [1, 2, 3];
-    /// let mapped = buffer.map()?;
+    /// let mut mapped = buffer.map()?;
     /// mapped.write(&data);
     /// mapped.unmap();
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// ```
     pub fn write(&mut self, data: &[T]) {
         assert!(data.len() <= self.buffer.instance_count);
@@ -194,13 +253,24 @@ impl<T> MappedBuffer<T> {
     /// 
     /// # Example
     /// 
-    /// ```
-    /// let data = [1, 2, 3];
+    /// ```no_run
+    /// # let event_loop = winit::event_loop::EventLoop::new();
+    /// # let window = winit::window::WindowBuilder::new().build(&event_loop)?;
+    /// # let instance = plate::Instance::new(&window, &Default::default())?;
+    /// # let surface = plate::Surface::new(&instance, &window)?;
+    /// # let device = plate::Device::new(instance, surface, &Default::default())?;
+    /// let buffer: plate::Buffer<u32> = plate::Buffer::new(&device, 4, // ..
+    ///     # plate::BufferUsageFlags::UNIFORM_BUFFER,
+    ///     # plate::SharingMode::EXCLUSIVE,
+    ///     # plate::MemoryPropertyFlags::HOST_VISIBLE | plate::MemoryPropertyFlags::HOST_VISIBLE,
+    /// # )?;
     /// // Map an existing buffer created with capacity for 4 instances
-    /// let mapped = buffer.map()?;
+    /// let mut mapped = buffer.map()?;
     /// // Write the contents of `data` to the mapped memory, starting from the index 1
+    /// let data = [1, 2, 3];
     /// mapped.write_index(&data, 1);
     /// mapped.unmap();
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// ```
     pub fn write_index(&mut self, data: &[T], index: usize) {
         assert!(data.len()+index <= self.buffer.instance_count);
@@ -235,15 +305,21 @@ impl<T> Buffer<T> {
     ///
     /// # Examples
     ///
-    /// ```
+    /// ```no_run
+    /// # let event_loop = winit::event_loop::EventLoop::new();
+    /// # let window = winit::window::WindowBuilder::new().build(&event_loop)?;
+    /// # let instance = plate::Instance::new(&window, &Default::default())?;
+    /// # let surface = plate::Surface::new(&instance, &window)?;
+    /// # let device = plate::Device::new(instance, surface, &Default::default())?;
     /// // Create a uniform buffer with capacity of 2 instances
-    /// let buffer = plate::Buffer::new(
+    /// let buffer: plate::Buffer<u32> = plate::Buffer::new(
     ///     &device,
     ///     2,
     ///     plate::BufferUsageFlags::UNIFORM_BUFFER,
     ///     plate::SharingMode::EXCLUSIVE,
     ///     plate::MemoryPropertyFlags::HOST_VISIBLE | plate::MemoryPropertyFlags::HOST_VISIBLE,
     /// )?;
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// ```
     pub fn new(
         device: &Arc<Device>,
@@ -285,9 +361,21 @@ impl<T> Buffer<T> {
     /// 
     /// # Example
     /// 
-    /// ```
-    /// let buffer = plate::Buffer::new(..)?;
+    /// ```no_run
+    /// # let event_loop = winit::event_loop::EventLoop::new();
+    /// # let window = winit::window::WindowBuilder::new().build(&event_loop)?;
+    /// # let instance = plate::Instance::new(&window, &Default::default())?;
+    /// # let surface = plate::Surface::new(&instance, &window)?;
+    /// # let device = plate::Device::new(instance, surface, &Default::default())?;
+    /// let buffer: plate::Buffer<u32> = plate::Buffer::new( // ..
+    ///     # &device,
+    ///     # 2,
+    ///     # plate::BufferUsageFlags::UNIFORM_BUFFER,
+    ///     # plate::SharingMode::EXCLUSIVE,
+    ///     # plate::MemoryPropertyFlags::HOST_VISIBLE | plate::MemoryPropertyFlags::HOST_VISIBLE,
+    /// # )?;
     /// let mapped = buffer.map()?;
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// ```
     pub fn map(self) -> Result<MappedBuffer<T>, Error> {
         let mapped = unsafe {

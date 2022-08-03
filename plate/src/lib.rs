@@ -1,12 +1,11 @@
 #![doc = include_str!("../../README.md")]
-#![doc = "```ignore"]
+#![doc = "```no_run"]
 #![doc = include_str!("../../examples/triangle.rs")]
 #![doc = "```"]
 
-//TODO use pub(crate)
 pub mod buffer;
 pub use buffer::*;
-pub mod debug;
+pub(crate) mod debug;
 pub mod descriptor;
 pub use descriptor::*;
 pub mod device;
