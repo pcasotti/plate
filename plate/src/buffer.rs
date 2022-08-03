@@ -134,7 +134,7 @@ impl<T> IndexBuffer<T> {
     /// Binds the IndexBuffer.
     /// 
     /// To be used when recording a command buffer, should be used after binding the pipeline and a
-    /// vertex buffer. Should also be used before a draw_indexed() call, otherwise the draw call
+    /// vertex buffer. Should also be used before a [`draw_indexed()`](crate::CommandBuffer::draw_indexed()) call, otherwise the draw call
     /// will not make use of the index buffer.
     /// 
     /// # Examples
@@ -176,7 +176,7 @@ pub struct MappedBuffer<T> {
 }
 
 impl<T> MappedBuffer<T> {
-    /// Unmaps the memory from the host and returns the inner Buffer.
+    /// Unmaps the memory from the host and returns the inner [`Buffer`].
     /// 
     /// # Example
     /// 
@@ -357,7 +357,7 @@ impl<T> Buffer<T> {
         })
     }
 
-    /// Maps the memory the host and returns a MappedBuffer.
+    /// Maps the memory the host and returns a [`MappedBuffer`].
     /// 
     /// # Example
     /// 
