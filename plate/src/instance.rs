@@ -106,7 +106,7 @@ impl Instance {
     /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// ```
     pub fn new(
-        window: &winit::window::Window,
+        window: Option<&winit::window::Window>,
         params: &InstanceParameters,
     ) -> Result<Self, Error> {
         let entry = ash::Entry::linked();
@@ -144,7 +144,11 @@ impl Instance {
             .map(|layer| layer.as_ptr())
             .collect::<Vec<_>>();
 
-        let mut extensions = ash_window::enumerate_required_extensions(window)?.to_vec();
+        let mut extensions = vec![];
+        if let Some(window) = window {
+            extensions.append(&mut ash_window::enumerate_required_extensions(window)?.to_vec());
+        }
+
         extensions.push(ash::extensions::ext::DebugUtils::name().as_ptr());
         let extra_extensions = params
             .extra_extensions
