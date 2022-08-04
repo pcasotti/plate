@@ -1,7 +1,7 @@
 image: rust:latest
 
 before_script:
-  - apt-get -qq update && apt-get -qq install -y python cmake gcc git
+  - apt-get -qq update && apt-get -qq install -y python cmake gcc git libvulkan-dev
 
 stages:
   - build
