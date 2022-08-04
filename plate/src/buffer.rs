@@ -301,7 +301,7 @@ impl<T> Drop for Buffer<T> {
 }
 
 impl<T> Buffer<T> {
-    /// Creates a Buffer\<T\>
+    /// Creates a Buffer\<T\>.
     ///
     /// # Examples
     ///

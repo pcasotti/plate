@@ -165,7 +165,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 swapchain.present(i, &present_sem).unwrap();
             }
 
-            winit::event::Event::LoopDestroyed => device.device_wait_idle().unwrap(),
+            winit::event::Event::LoopDestroyed => device.wait_idle().unwrap(),
             _ => (),
         }
     })

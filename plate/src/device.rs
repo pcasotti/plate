@@ -4,19 +4,26 @@ use ash::{extensions::khr, vk};
 
 use crate::{Surface, Instance, CommandBuffer, Semaphore, Fence, Error, MemoryPropertyFlags};
 
+/// Errors from the device module.
 #[derive(thiserror::Error, Debug)]
 pub enum DeviceError {
+    /// None of the available queue families match the requested type.
     #[error("{0}")]
     QueueNotFound(QueueType),
+    /// The physical device memory properties does not support the requested flags.
     #[error("{0:?}")]
     MemoryTypeNotFound(MemoryPropertyFlags),
+    /// None of the available physical devices match the requested options.
     #[error("No suitable device was found")]
     NoDeviceSuitable,
 }
 
+/// Type and functionality of a queue.
 #[derive(Debug)]
 pub enum QueueType {
+    /// A queue capable of performing graphics operations.
     Graphics,
+    /// A queue capable of performing present operations.
     Present,
 }
 
@@ -26,18 +33,22 @@ impl fmt::Display for QueueType {
     }
 }
 
+/// Holds a device queue and the index of the corresponding queue family.
 #[derive(Clone, Copy)]
 pub struct Queue {
-    pub queue: vk::Queue,
-    pub family: u32,
+    pub(crate) queue: vk::Queue,
+    pub(crate) family: u32,
 }
 
+/// The Device is responsible for most of the vulkan operations.
 pub struct Device {
-    pub device: ash::Device,
-    pub surface: Surface,
-    pub instance: Instance,
-    pub physical_device: vk::PhysicalDevice,
+    device: ash::Device,
+    pub(crate) surface: Surface,
+    pub(crate) instance: Instance,
+    pub(crate) physical_device: vk::PhysicalDevice,
+    /// A [`Queue`] of type [`Graphics`](QueueType::Graphics) available in this device.
     pub graphics_queue: Queue,
+    /// A [`Queue`] of type [`Present`](QueueType::Present) available in this device.
     pub present_queue: Queue,
 }
 
@@ -58,6 +69,22 @@ impl ops::Deref for Device {
 }
 
 impl Device {
+    /// Creates a Device and returns an [`Arc`] pointing to it.
+    ///
+    /// The Device takes ownership of an [`Instance`] and a [`Surface`]. The [`DeviceParameters`]
+    /// are used to mach a physical device with the required features. If no device is from the
+    /// preferred [`DeviceType`] will default to whatever is available.
+    ///
+    /// # Exmaple
+    ///
+    /// ```no_run
+    /// # let event_loop = winit::event_loop::EventLoop::new();
+    /// # let window = winit::window::WindowBuilder::new().build(&event_loop)?;
+    /// # let instance = plate::Instance::new(&window, &Default::default())?;
+    /// # let surface = plate::Surface::new(&instance, &window)?;
+    /// let device = plate::Device::new(instance, surface, &Default::default())?;
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
+    /// ```
     pub fn new(
         instance: Instance,
         surface: Surface,
@@ -149,7 +176,40 @@ impl Device {
         }))
     }
 
-    pub fn queue_submit(&self, queue: Queue, command_buffer: &CommandBuffer, wait_stage: PipelineStage, wait_semaphore: &Semaphore, signal_semaphore: &Semaphore, fence: &Fence) -> Result<(), Error> {
+    /// Submit a [`CommandBuffer`] to be executed by a [`Queue`].
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # let event_loop = winit::event_loop::EventLoop::new();
+    /// # let window = winit::window::WindowBuilder::new().build(&event_loop)?;
+    /// # let instance = plate::Instance::new(&window, &Default::default())?;
+    /// # let surface = plate::Surface::new(&instance, &window)?;
+    /// # let device = plate::Device::new(instance, surface, &Default::default())?;
+    /// # let cmd_pool = plate::CommandPool::new(&device)?;
+    /// # let cmd_buffer = cmd_pool.alloc_cmd_buffer(plate::CommandBufferLevel::PRIMARY)?;
+    /// # let fence = plate::Fence::new(&device, plate::FenceFlags::SIGNALED)?;
+    /// # let acquire_sem = plate::Semaphore::new(&device, plate::SemaphoreFlags::empty())?;
+    /// # let present_sem = plate::Semaphore::new(&device, plate::SemaphoreFlags::empty())?;
+    /// device.queue_submit(
+    ///     device.graphics_queue,
+    ///     &cmd_buffer,
+    ///     plate::PipelineStage::COLOR_ATTACHMENT_OUTPUT,
+    ///     &acquire_sem,
+    ///     &present_sem,
+    ///     &fence,
+    /// )?;
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
+    /// ```
+    pub fn queue_submit(
+        &self,
+        queue: Queue,
+        command_buffer: &CommandBuffer,
+        wait_stage: PipelineStage,
+        wait_semaphore: &Semaphore,
+        signal_semaphore: &Semaphore,
+        fence: &Fence
+    ) -> Result<(), Error> {
         let wait_semaphores = match wait_semaphore {
             Semaphore::Semaphore { device: _, semaphore: _} => vec![**wait_semaphore],
             Semaphore::None => vec![],
@@ -176,11 +236,24 @@ impl Device {
         Ok(unsafe { self.device.queue_submit(queue.queue, &submit_infos, fence)? })
     }
 
-    pub fn device_wait_idle(&self) -> Result<(), Error> {
+    /// Wait for all device queues to be executed.
+    ///
+    /// #Examples
+    ///
+    /// ```no_run
+    /// # let event_loop = winit::event_loop::EventLoop::new();
+    /// # let window = winit::window::WindowBuilder::new().build(&event_loop)?;
+    /// # let instance = plate::Instance::new(&window, &Default::default())?;
+    /// # let surface = plate::Surface::new(&instance, &window)?;
+    /// # let device = plate::Device::new(instance, surface, &Default::default())?;
+    /// device.wait_idle()?;
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
+    /// ```
+    pub fn wait_idle(&self) -> Result<(), Error> {
         Ok(unsafe { self.device.device_wait_idle()? })
     }
 
-    pub fn memory_type_index(&self, mem_requirements: vk::MemoryRequirements, memory_properties: MemoryPropertyFlags) -> Result<usize, Error> {
+    pub(crate) fn memory_type_index(&self, mem_requirements: vk::MemoryRequirements, memory_properties: MemoryPropertyFlags) -> Result<usize, Error> {
         let mem_properties = unsafe { self.instance.get_physical_device_memory_properties(self.physical_device) };
         mem_properties
             .memory_types
@@ -198,8 +271,11 @@ impl Device {
 pub use vk::PhysicalDeviceType as DeviceType;
 pub use vk::PipelineStageFlags as PipelineStage;
 
+/// Parameters for physical device selection.
 pub struct DeviceParameters {
+    /// Will prefer devices of this type.
     pub preferred_type: DeviceType,
+    /// What features the device should support.
     pub features: DeviceFeatures,
 }
 
@@ -340,6 +416,7 @@ impl Contains<DeviceFeatures> for vk::PhysicalDeviceFeatures {
 }
 
 bitflags::bitflags! {
+    /// <https://www.khronos.org/registry/vulkan/specs/1.3-extensions/man/html/VkPhysicalDeviceFeatures.html>
     pub struct DeviceFeatures: u64 {
         const ROBUST_BUFFER_ACCESS = 1 << 0;
         const FULL_DRAW_INDEX_UINT32 = 1 << 1;

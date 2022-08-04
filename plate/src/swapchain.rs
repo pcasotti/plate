@@ -26,7 +26,7 @@ impl Swapchain {
     }
 
     pub fn recreate(&mut self, window: &winit::window::Window) -> Result<(), Error> {
-        self.0.device.device_wait_idle()?;
+        self.0.device.wait_idle()?;
         Ok(self.0 = Swap::new(&self.0.device, window, Some(&self))?)
     }
 }

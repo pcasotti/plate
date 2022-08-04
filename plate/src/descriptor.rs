@@ -75,7 +75,7 @@ impl DescriptorPoolBuilder {
     }
 }
 
-/// Holds a vk::DescriptorPool, used to allocate [`DescriptorSets`](DescriptorSet)
+/// Holds a vk::DescriptorPool, used to allocate [`DescriptorSets`](DescriptorSet).
 pub struct DescriptorPool {
     device: Arc<Device>,
     pool: vk::DescriptorPool,
@@ -90,7 +90,7 @@ impl Drop for DescriptorPool {
 }
 
 impl DescriptorPool {
-    /// Creates a DescriptorPool from [`PoolSizes`](PoolSize) and `max_sets`
+    /// Creates a DescriptorPool from [`PoolSizes`](PoolSize) and `max_sets`.
     ///
     /// The `sizes` parameter represent the type of DescriptorSets to be allocated and `max_sets`
     /// is the maximum ammount of DescriptorSets to be allocated from this DescriptorPool.
@@ -226,14 +226,14 @@ struct WriteDescriptor {
     descriptor_info: DescriptorInfo,
 }
 
-/// Struct used to allocate a [`DescriptorSet`]
+/// Struct used to allocate a [`DescriptorSet`].
 pub struct DescriptorAllocator {
     device: Arc<Device>,
     writes: Vec<WriteDescriptor>,
 }
 
 impl DescriptorAllocator {
-    /// Creates a new DescriptorAllocator
+    /// Creates a new DescriptorAllocator.
     ///
     /// # Examples
     ///
@@ -253,7 +253,7 @@ impl DescriptorAllocator {
         }
     }
 
-    /// Binds a [`Buffer`] to a descriptor binding
+    /// Binds a [`Buffer`] to a descriptor binding.
     ///
     /// # Examples
     ///
@@ -290,7 +290,7 @@ impl DescriptorAllocator {
         self
     }
 
-    /// Binds a [`Image`] to a descriptor binding
+    /// Binds a [`Image`] to a descriptor binding.
     ///
     /// # Examples
     ///
@@ -397,7 +397,7 @@ impl DescriptorAllocator {
     }
 }
 
-/// Holds a vk::DescriptorSet
+/// Holds a vk::DescriptorSet.
 pub struct DescriptorSet {
     device: Arc<Device>,
     set: vk::DescriptorSet,
