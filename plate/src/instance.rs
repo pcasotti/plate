@@ -3,16 +3,22 @@ use std::ffi;
 
 use crate::{debug, Error};
 
+/// Errors from the instance module.
 #[derive(thiserror::Error, Debug)]
 pub enum InstanceError {
+    /// Error trying to create a C string because of a nul byte.
     #[error("Error creating C string: {0}")]
     NulError(#[from] ffi::NulError),
 }
 
+/// Version of the Vulkan API.
 #[derive(Clone, Copy)]
 pub enum ApiVersion {
+    /// API version 1.1.
     Type1_1,
+    /// API version 1.2.
     Type1_2,
+    /// API version 1.3.
     Type1_3,
 }
 
@@ -27,13 +33,21 @@ impl Into<u32> for ApiVersion {
     }
 }
 
+/// Optional parameters when creating the [`Instance`].
 pub struct InstanceParameters {
+    /// Application name.
     pub app_name: String,
+    /// Application version.
     pub app_version: (u32, u32, u32, u32),
+    /// Engine name.
     pub engine_name: String,
+    /// Engine version.
     pub engine_version: (u32, u32, u32, u32),
+    /// API version to be used.
     pub api_version: ApiVersion,
+    /// Aditional vulkan layers to be enabled.
     pub extra_layers: Vec<String>,
+    /// Aditional vulkan extensions to be enabled.
     pub extra_extensions: Vec<String>,
 }
 
@@ -51,9 +65,10 @@ impl Default for InstanceParameters {
     }
 }
 
+/// Entry point of the vulkan library.
 pub struct Instance {
     instance: ash::Instance,
-    pub entry: ash::Entry,
+    pub(crate) entry: ash::Entry,
     debug_utils: ext::DebugUtils,
     debug_messenger: vk::DebugUtilsMessengerEXT,
 }
@@ -76,7 +91,20 @@ impl Drop for Instance {
     }
 }
 
+// TODO: Make window and validation layers optional
 impl Instance {
+    /// Creates a Instance.
+    ///
+    /// A window is necessary to get the required extensions. Validation layers are enabled.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # let event_loop = winit::event_loop::EventLoop::new();
+    /// # let window = winit::window::WindowBuilder::new().build(&event_loop)?;
+    /// let instance = plate::Instance::new(&window, &Default::default())?;
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
+    /// ```
     pub fn new(
         window: &winit::window::Window,
         params: &InstanceParameters,
