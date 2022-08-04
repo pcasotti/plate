@@ -1,5 +1,12 @@
 image: rust:latest
 
+cache:
+  - key: $CI_COMMIT_REF_SLUG
+      files:
+        - Cargo.lock
+    paths:
+      - target
+
 before_script:
   - apt-get -qq update && apt-get -qq install -y python cmake gcc git libvulkan-dev
 
