@@ -24,7 +24,7 @@ pub struct PoolSize {
 /// ```no_run
 /// # let event_loop = winit::event_loop::EventLoop::new();
 /// # let window = winit::window::WindowBuilder::new().build(&event_loop)?;
-/// # let instance = plate::Instance::new(&window, &Default::default())?;
+/// # let instance = plate::Instance::new(Some(&window), &Default::default())?;
 /// # let surface = plate::Surface::new(&instance, &window)?;
 /// # let device = plate::Device::new(instance, surface, &Default::default())?;
 /// // Create a DescriptorPool capable of allocating at most 2 DescriptorSets of type
@@ -100,7 +100,7 @@ impl DescriptorPool {
     /// ```no_run
     /// # let event_loop = winit::event_loop::EventLoop::new();
     /// # let window = winit::window::WindowBuilder::new().build(&event_loop)?;
-    /// # let instance = plate::Instance::new(&window, &Default::default())?;
+    /// # let instance = plate::Instance::new(Some(&window), &Default::default())?;
     /// # let surface = plate::Surface::new(&instance, &window)?;
     /// # let device = plate::Device::new(instance, surface, &Default::default())?;
     /// // Create a DescriptorPool capable of allocating 1 DescriptorSet of type UNIFORM_BUFFER
@@ -177,7 +177,7 @@ impl DescriptorSetLayout {
     /// ```no_run
     /// # let event_loop = winit::event_loop::EventLoop::new();
     /// # let window = winit::window::WindowBuilder::new().build(&event_loop)?;
-    /// # let instance = plate::Instance::new(&window, &Default::default())?;
+    /// # let instance = plate::Instance::new(Some(&window), &Default::default())?;
     /// # let surface = plate::Surface::new(&instance, &window)?;
     /// # let device = plate::Device::new(instance, surface, &Default::default())?;
     /// // Create a layout with an uniform buffer visible in the vertex shader at binding 0
@@ -240,7 +240,7 @@ impl DescriptorAllocator {
     /// ```no_run
     /// # let event_loop = winit::event_loop::EventLoop::new();
     /// # let window = winit::window::WindowBuilder::new().build(&event_loop)?;
-    /// # let instance = plate::Instance::new(&window, &Default::default())?;
+    /// # let instance = plate::Instance::new(Some(&window), &Default::default())?;
     /// # let surface = plate::Surface::new(&instance, &window)?;
     /// # let device = plate::Device::new(instance, surface, &Default::default())?;
     /// let allocator = plate::DescriptorAllocator::new(&device);
@@ -260,7 +260,7 @@ impl DescriptorAllocator {
     /// ```no_run
     /// # let event_loop = winit::event_loop::EventLoop::new();
     /// # let window = winit::window::WindowBuilder::new().build(&event_loop)?;
-    /// # let instance = plate::Instance::new(&window, &Default::default())?;
+    /// # let instance = plate::Instance::new(Some(&window), &Default::default())?;
     /// # let surface = plate::Surface::new(&instance, &window)?;
     /// # let device = plate::Device::new(instance, surface, &Default::default())?;
     /// # let buffer: plate::Buffer<u32> = plate::Buffer::new(
@@ -297,7 +297,7 @@ impl DescriptorAllocator {
     /// ```no_run
     /// # let event_loop = winit::event_loop::EventLoop::new();
     /// # let window = winit::window::WindowBuilder::new().build(&event_loop)?;
-    /// # let instance = plate::Instance::new(&window, &Default::default())?;
+    /// # let instance = plate::Instance::new(Some(&window), &Default::default())?;
     /// # let surface = plate::Surface::new(&instance, &window)?;
     /// # let device = plate::Device::new(instance, surface, &Default::default())?;
     /// # let image = plate::Image::new(&device, 0, 0, plate::Format::UNDEFINED,
@@ -334,7 +334,7 @@ impl DescriptorAllocator {
     /// ```no_run
     /// # let event_loop = winit::event_loop::EventLoop::new();
     /// # let window = winit::window::WindowBuilder::new().build(&event_loop)?;
-    /// # let instance = plate::Instance::new(&window, &Default::default())?;
+    /// # let instance = plate::Instance::new(Some(&window), &Default::default())?;
     /// # let surface = plate::Surface::new(&instance, &window)?;
     /// # let device = plate::Device::new(instance, surface, &Default::default())?;
     /// # let buffer: plate::Buffer<u32> = plate::Buffer::new(
@@ -415,7 +415,7 @@ impl DescriptorSet {
     /// # struct Vertex(f32);
     /// # let event_loop = winit::event_loop::EventLoop::new();
     /// # let window = winit::window::WindowBuilder::new().build(&event_loop)?;
-    /// # let instance = plate::Instance::new(&window, &Default::default())?;
+    /// # let instance = plate::Instance::new(Some(&window), &Default::default())?;
     /// # let surface = plate::Surface::new(&instance, &window)?;
     /// # let device = plate::Device::new(instance, surface, &Default::default())?;
     /// # let cmd_pool = plate::CommandPool::new(&device)?;

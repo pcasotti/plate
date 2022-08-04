@@ -80,7 +80,7 @@ impl Device {
     /// ```no_run
     /// # let event_loop = winit::event_loop::EventLoop::new();
     /// # let window = winit::window::WindowBuilder::new().build(&event_loop)?;
-    /// # let instance = plate::Instance::new(&window, &Default::default())?;
+    /// # let instance = plate::Instance::new(Some(&window), &Default::default())?;
     /// # let surface = plate::Surface::new(&instance, &window)?;
     /// let device = plate::Device::new(instance, surface, &Default::default())?;
     /// # Ok::<(), Box<dyn std::error::Error>>(())
@@ -183,7 +183,7 @@ impl Device {
     /// ```no_run
     /// # let event_loop = winit::event_loop::EventLoop::new();
     /// # let window = winit::window::WindowBuilder::new().build(&event_loop)?;
-    /// # let instance = plate::Instance::new(&window, &Default::default())?;
+    /// # let instance = plate::Instance::new(Some(&window), &Default::default())?;
     /// # let surface = plate::Surface::new(&instance, &window)?;
     /// # let device = plate::Device::new(instance, surface, &Default::default())?;
     /// # let cmd_pool = plate::CommandPool::new(&device)?;
@@ -243,7 +243,7 @@ impl Device {
     /// ```no_run
     /// # let event_loop = winit::event_loop::EventLoop::new();
     /// # let window = winit::window::WindowBuilder::new().build(&event_loop)?;
-    /// # let instance = plate::Instance::new(&window, &Default::default())?;
+    /// # let instance = plate::Instance::new(Some(&window), &Default::default())?;
     /// # let surface = plate::Surface::new(&instance, &window)?;
     /// # let device = plate::Device::new(instance, surface, &Default::default())?;
     /// device.wait_idle()?;

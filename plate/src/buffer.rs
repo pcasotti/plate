@@ -19,7 +19,7 @@ impl<T> VertexBuffer<T> {
     /// struct Vertex(f32);
     /// # let event_loop = winit::event_loop::EventLoop::new();
     /// # let window = winit::window::WindowBuilder::new().build(&event_loop)?;
-    /// # let instance = plate::Instance::new(&window, &Default::default())?;
+    /// # let instance = plate::Instance::new(Some(&window), &Default::default())?;
     /// # let surface = plate::Surface::new(&instance, &window)?;
     /// # let device = plate::Device::new(instance, surface, &Default::default())?;
     /// # let cmd_pool = plate::CommandPool::new(&device)?;
@@ -66,7 +66,7 @@ impl<T> VertexBuffer<T> {
     /// # struct Vertex(f32);
     /// # let event_loop = winit::event_loop::EventLoop::new();
     /// # let window = winit::window::WindowBuilder::new().build(&event_loop)?;
-    /// # let instance = plate::Instance::new(&window, &Default::default())?;
+    /// # let instance = plate::Instance::new(Some(&window), &Default::default())?;
     /// # let surface = plate::Surface::new(&instance, &window)?;
     /// # let device = plate::Device::new(instance, surface, &Default::default())?;
     /// # let cmd_pool = plate::CommandPool::new(&device)?;
@@ -96,7 +96,7 @@ impl<T> IndexBuffer<T> {
     /// ```no_run
     /// # let event_loop = winit::event_loop::EventLoop::new();
     /// # let window = winit::window::WindowBuilder::new().build(&event_loop)?;
-    /// # let instance = plate::Instance::new(&window, &Default::default())?;
+    /// # let instance = plate::Instance::new(Some(&window), &Default::default())?;
     /// # let surface = plate::Surface::new(&instance, &window)?;
     /// # let device = plate::Device::new(instance, surface, &Default::default())?;
     /// # let cmd_pool = plate::CommandPool::new(&device)?;
@@ -142,7 +142,7 @@ impl<T> IndexBuffer<T> {
     /// ```no_run
     /// # let event_loop = winit::event_loop::EventLoop::new();
     /// # let window = winit::window::WindowBuilder::new().build(&event_loop)?;
-    /// # let instance = plate::Instance::new(&window, &Default::default())?;
+    /// # let instance = plate::Instance::new(Some(&window), &Default::default())?;
     /// # let surface = plate::Surface::new(&instance, &window)?;
     /// # let device = plate::Device::new(instance, surface, &Default::default())?;
     /// # let cmd_pool = plate::CommandPool::new(&device)?;
@@ -183,7 +183,7 @@ impl<T> MappedBuffer<T> {
     /// ```no_run
     /// # let event_loop = winit::event_loop::EventLoop::new();
     /// # let window = winit::window::WindowBuilder::new().build(&event_loop)?;
-    /// # let instance = plate::Instance::new(&window, &Default::default())?;
+    /// # let instance = plate::Instance::new(Some(&window), &Default::default())?;
     /// # let surface = plate::Surface::new(&instance, &window)?;
     /// # let device = plate::Device::new(instance, surface, &Default::default())?;
     /// # let buffer: plate::Buffer<u32> = plate::Buffer::new( // ..
@@ -218,7 +218,7 @@ impl<T> MappedBuffer<T> {
     /// ```no_run
     /// # let event_loop = winit::event_loop::EventLoop::new();
     /// # let window = winit::window::WindowBuilder::new().build(&event_loop)?;
-    /// # let instance = plate::Instance::new(&window, &Default::default())?;
+    /// # let instance = plate::Instance::new(Some(&window), &Default::default())?;
     /// # let surface = plate::Surface::new(&instance, &window)?;
     /// # let device = plate::Device::new(instance, surface, &Default::default())?;
     /// # let buffer: plate::Buffer<u32> = plate::Buffer::new( // ..
@@ -256,7 +256,7 @@ impl<T> MappedBuffer<T> {
     /// ```no_run
     /// # let event_loop = winit::event_loop::EventLoop::new();
     /// # let window = winit::window::WindowBuilder::new().build(&event_loop)?;
-    /// # let instance = plate::Instance::new(&window, &Default::default())?;
+    /// # let instance = plate::Instance::new(Some(&window), &Default::default())?;
     /// # let surface = plate::Surface::new(&instance, &window)?;
     /// # let device = plate::Device::new(instance, surface, &Default::default())?;
     /// let buffer: plate::Buffer<u32> = plate::Buffer::new(&device, 4, // ..
@@ -308,7 +308,7 @@ impl<T> Buffer<T> {
     /// ```no_run
     /// # let event_loop = winit::event_loop::EventLoop::new();
     /// # let window = winit::window::WindowBuilder::new().build(&event_loop)?;
-    /// # let instance = plate::Instance::new(&window, &Default::default())?;
+    /// # let instance = plate::Instance::new(Some(&window), &Default::default())?;
     /// # let surface = plate::Surface::new(&instance, &window)?;
     /// # let device = plate::Device::new(instance, surface, &Default::default())?;
     /// // Create a uniform buffer with capacity of 2 instances
@@ -364,7 +364,7 @@ impl<T> Buffer<T> {
     /// ```no_run
     /// # let event_loop = winit::event_loop::EventLoop::new();
     /// # let window = winit::window::WindowBuilder::new().build(&event_loop)?;
-    /// # let instance = plate::Instance::new(&window, &Default::default())?;
+    /// # let instance = plate::Instance::new(Some(&window), &Default::default())?;
     /// # let surface = plate::Surface::new(&instance, &window)?;
     /// # let device = plate::Device::new(instance, surface, &Default::default())?;
     /// let buffer: plate::Buffer<u32> = plate::Buffer::new( // ..

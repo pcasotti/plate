@@ -103,7 +103,7 @@ impl Instance {
     /// ```no_run
     /// # let event_loop = winit::event_loop::EventLoop::new();
     /// # let window = winit::window::WindowBuilder::new().build(&event_loop)?;
-    /// let instance = plate::Instance::new(&window, &Default::default())?;
+    /// let instance = plate::Instance::new(Some(&window), &Default::default())?;
     /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// ```
     pub fn new(
