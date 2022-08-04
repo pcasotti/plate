@@ -1,0 +1,19 @@
+image: rust:latest
+
+before_script:
+  - apt-get -qq update && apt-get -qq install -y python cmake gcc git libvulkan-dev
+
+stages:
+  - build
+  - test
+
+cargo-build:
+  stage: build
+  script:
+    - cargo build --verbose
+
+cargo-test:
+  stage: test
+  script:
+    - cargo test --verbose
+    - cargo test --examples --verbose
