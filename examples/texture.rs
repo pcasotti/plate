@@ -142,15 +142,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 ubo.write(&[Ubo { model: glam::Mat4::from_rotation_z(rot) }]);
 
                 cmd_buffer.record(plate::CommandBufferUsageFlags::empty(), || {
-                    swapchain.begin_render_pass(*cmd_buffer, i.try_into().unwrap());
+                    swapchain.begin_render_pass(&cmd_buffer, i.try_into().unwrap());
 
-                    pipeline.bind(*cmd_buffer, &swapchain);
+                    pipeline.bind(&cmd_buffer, &swapchain);
                     vert_buffer.bind(&cmd_buffer);
                     index_buffer.bind(&cmd_buffer);
                     descriptor_set.bind(&cmd_buffer, pipeline.layout);
 
                     cmd_buffer.draw_indexed(indices.len() as u32, 1, 0, 0, 0);
-                    swapchain.end_render_pass(*cmd_buffer);
+                    swapchain.end_render_pass(&cmd_buffer);
                 }).unwrap();
 
                 device.queue_submit(

@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use ash::{extensions::khr, vk};
 
-use crate::{Device, sync::*, image::*, Error};
+use crate::{Device, sync::*, image::*, Error, CommandBuffer};
 
 #[derive(thiserror::Error, Debug)]
 pub enum SwapchainError {
@@ -286,7 +286,7 @@ impl Swap {
         (self.extent.width as f32) / (self.extent.height as f32)
     }
 
-    pub fn begin_render_pass(&self, command_buffer: vk::CommandBuffer, image_index: usize) {
+    pub fn begin_render_pass(&self, command_buffer: &CommandBuffer, image_index: usize) {
         let clear_values = [
             vk::ClearValue {
                 color: vk::ClearColorValue {
@@ -312,15 +312,15 @@ impl Swap {
 
         unsafe {
             self.device.cmd_begin_render_pass(
-                command_buffer,
+                **command_buffer,
                 &begin_info,
                 vk::SubpassContents::INLINE,
             )
         }
     }
 
-    pub fn end_render_pass(&self, command_buffer: vk::CommandBuffer) {
-        unsafe { self.device.cmd_end_render_pass(command_buffer) }
+    pub fn end_render_pass(&self, command_buffer: &CommandBuffer) {
+        unsafe { self.device.cmd_end_render_pass(**command_buffer) }
     }
 
     pub fn next_image(&self, semaphore: &Semaphore) -> Result<(u32, bool), Error> {

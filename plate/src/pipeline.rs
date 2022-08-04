@@ -2,7 +2,7 @@ use std::{ffi, sync::Arc};
 
 use ash::vk;
 
-use crate::{DescriptorSetLayout, Device, Swapchain, Format, Error};
+use crate::{DescriptorSetLayout, Device, Swapchain, Format, Error, CommandBuffer};
 
 pub use vk::VertexInputRate as InputRate;
 
@@ -204,9 +204,9 @@ impl Pipeline {
         })
     }
 
-    pub fn bind(&self, command_buffer: vk::CommandBuffer, swapchain: &Swapchain) {
+    pub fn bind(&self, command_buffer: &CommandBuffer, swapchain: &Swapchain) {
         unsafe {
-            self.device.cmd_bind_pipeline(command_buffer, vk::PipelineBindPoint::GRAPHICS, self.pipeline)
+            self.device.cmd_bind_pipeline(**command_buffer, vk::PipelineBindPoint::GRAPHICS, self.pipeline)
         }
 
         let viewports = [vk::Viewport {
@@ -217,12 +217,12 @@ impl Pipeline {
             min_depth: 0.0,
             max_depth: 1.0,
         }];
-        unsafe { self.device.cmd_set_viewport(command_buffer, 0, &viewports) };
+        unsafe { self.device.cmd_set_viewport(**command_buffer, 0, &viewports) };
 
         let scissors = [vk::Rect2D {
             offset: vk::Offset2D { x: 0, y: 0 },
             extent: swapchain.extent,
         }];
-        unsafe { self.device.cmd_set_scissor(command_buffer, 0, &scissors) };
+        unsafe { self.device.cmd_set_scissor(**command_buffer, 0, &scissors) };
     }
 }

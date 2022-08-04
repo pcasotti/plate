@@ -65,11 +65,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 let (i, _) = swapchain.next_image(&acquire_sem).unwrap();
 
                 cmd_buffer.record(plate::CommandBufferUsageFlags::empty(), || {
-                    swapchain.begin_render_pass(*cmd_buffer, i.try_into().unwrap());
-                    pipeline.bind(*cmd_buffer, &swapchain);
+                    swapchain.begin_render_pass(&cmd_buffer, i.try_into().unwrap());
+                    pipeline.bind(&cmd_buffer, &swapchain);
                     vert_buffer.bind(&cmd_buffer);
                     cmd_buffer.draw(vertices.len() as u32, 1, 0, 0);
-                    swapchain.end_render_pass(*cmd_buffer);
+                    swapchain.end_render_pass(&cmd_buffer);
                 }).unwrap();
 
                 device.queue_submit(
