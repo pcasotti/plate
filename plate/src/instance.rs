@@ -1,7 +1,7 @@
-use ash::{extensions::ext, vk};
+use ash::vk;
 use std::ffi;
 
-use crate::{debug, Error};
+use crate::{debug, Error, Debugger};
 
 /// Errors from the instance module.
 #[derive(thiserror::Error, Debug)]
@@ -49,6 +49,8 @@ pub struct InstanceParameters {
     pub extra_layers: Vec<String>,
     /// Aditional vulkan extensions to be enabled.
     pub extra_extensions: Vec<String>,
+    /// Whether to use validation layers or not.
+    pub enable_validation_layers: bool,
 }
 
 impl Default for InstanceParameters {
@@ -61,6 +63,7 @@ impl Default for InstanceParameters {
             api_version: ApiVersion::Type1_2,
             extra_layers: vec![],
             extra_extensions: vec![],
+            enable_validation_layers: true,
         }
     }
 }
@@ -69,8 +72,8 @@ impl Default for InstanceParameters {
 pub struct Instance {
     instance: ash::Instance,
     pub(crate) entry: ash::Entry,
-    debug_utils: ext::DebugUtils,
-    debug_messenger: vk::DebugUtilsMessengerEXT,
+    #[allow(dead_code)]
+    debugger: Option<Debugger>,
 }
 
 impl std::ops::Deref for Instance {
@@ -84,18 +87,16 @@ impl std::ops::Deref for Instance {
 impl Drop for Instance {
     fn drop(&mut self) {
         unsafe {
-            self.debug_utils
-                .destroy_debug_utils_messenger(self.debug_messenger, None);
             self.destroy_instance(None);
         }
     }
 }
 
-// TODO: Make window and validation layers optional
 impl Instance {
     /// Creates a Instance.
     ///
-    /// A window is necessary to get the required extensions. Validation layers are enabled.
+    /// If a window is provided, the required extensions for presenting to it are automatically
+    /// added.
     ///
     /// # Examples
     ///
@@ -130,7 +131,9 @@ impl Instance {
             ))
             .api_version(params.api_version.into());
 
-        let mut layers = vec!["VK_LAYER_KHRONOS_validation".into()];
+        let mut layers = if params.enable_validation_layers {
+            vec!["VK_LAYER_KHRONOS_validation".into()]
+        } else { vec![] };
         params
             .extra_layers
             .iter()
@@ -144,12 +147,14 @@ impl Instance {
             .map(|layer| layer.as_ptr())
             .collect::<Vec<_>>();
 
-        let mut extensions = vec![];
-        if let Some(window) = window {
-            extensions.append(&mut ash_window::enumerate_required_extensions(window)?.to_vec());
+        let mut extensions = match window {
+            Some(window) => ash_window::enumerate_required_extensions(window)?.to_vec(),
+            None => vec![],
+        };
+        if params.enable_validation_layers {
+            extensions.push(ash::extensions::ext::DebugUtils::name().as_ptr());
         }
 
-        extensions.push(ash::extensions::ext::DebugUtils::name().as_ptr());
         let extra_extensions = params
             .extra_extensions
             .iter()
@@ -169,16 +174,14 @@ impl Instance {
 
         let instance = unsafe { entry.create_instance(&instance_info, None)? };
 
-        let debug_utils = ext::DebugUtils::new(&entry, &instance);
-        let debug_messenger_info = debug::debug_messenger_info();
-
-        let debug_messenger = unsafe { debug_utils.create_debug_utils_messenger(&debug_messenger_info, None)? };
+        let debugger = if params.enable_validation_layers {
+            Some(Debugger::new(&entry, &instance)?)
+        } else { None };
 
         Ok(Self {
             instance,
             entry,
-            debug_utils,
-            debug_messenger,
+            debugger,
         })
     }
 }

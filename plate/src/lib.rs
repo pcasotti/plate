@@ -6,6 +6,7 @@
 pub mod buffer;
 pub use buffer::*;
 pub(crate) mod debug;
+pub(crate) use debug::*;
 pub mod descriptor;
 pub use descriptor::*;
 pub mod device;
