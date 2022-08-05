@@ -34,7 +34,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let instance = plate::Instance::new(Some(&window), &Default::default())?;
     let surface = plate::Surface::new(&instance, &window)?;
     let device = plate::Device::new(instance, surface, &Default::default())?;
-    let mut swapchain = plate::swapchain::Swapchain::new(&device, &window, None)?;
+    let mut swapchain = plate::swapchain::Swapchain::new(&device, &window)?;
 
     let set_layout = plate::DescriptorSetLayout::new(
         &device,

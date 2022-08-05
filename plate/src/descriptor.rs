@@ -420,7 +420,7 @@ impl DescriptorSet {
     /// # let device = plate::Device::new(instance, surface, &Default::default())?;
     /// # let cmd_pool = plate::CommandPool::new(&device)?;
     /// # let cmd_buffer = cmd_pool.alloc_cmd_buffer(plate::CommandBufferLevel::PRIMARY)?;
-    /// # let swapchain = plate::swapchain::Swapchain::new(&device, &window, None)?;
+    /// # let swapchain = plate::swapchain::Swapchain::new(&device, &window)?;
     /// # let layout = plate::DescriptorSetLayout::new(&device, &[])?;
     /// # let pipeline = plate::pipeline::Pipeline::new(&device, &swapchain, &[], &[],
     /// # &Default::default())?;

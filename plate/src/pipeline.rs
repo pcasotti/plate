@@ -135,7 +135,7 @@ impl Pipeline {
     /// # let instance = plate::Instance::new(Some(&window), &Default::default())?;
     /// # let surface = plate::Surface::new(&instance, &window)?;
     /// # let device = plate::Device::new(instance, surface, &Default::default())?;
-    /// # let mut swapchain = plate::swapchain::Swapchain::new(&device, &window, None)?;
+    /// # let mut swapchain = plate::swapchain::Swapchain::new(&device, &window)?;
     /// let pipeline = plate::pipeline::Pipeline::new(
     ///     &device,
     ///     &swapchain,
@@ -255,7 +255,7 @@ impl Pipeline {
             .multisample_state(&multisampling)
             .color_blend_state(&color_blend)
             .layout(layout)
-            .render_pass(swapchain.render_pass)
+            .render_pass(swapchain.0.render_pass)
             .dynamic_state(&dynamic_state)
             .subpass(0)
             .depth_stencil_state(&stencil_state);
@@ -289,7 +289,7 @@ impl Pipeline {
     /// # let device = plate::Device::new(instance, surface, &Default::default())?;
     /// # let cmd_pool = plate::CommandPool::new(&device)?;
     /// # let cmd_buffer = cmd_pool.alloc_cmd_buffer(plate::CommandBufferLevel::PRIMARY)?;
-    /// # let swapchain = plate::swapchain::Swapchain::new(&device, &window, None)?;
+    /// # let swapchain = plate::swapchain::Swapchain::new(&device, &window)?;
     /// # let pipeline = plate::pipeline::Pipeline::new(&device, &swapchain, &[], &[],
     /// # &Default::default())?;
     /// // cmd_buffer.record(.., || {
@@ -305,8 +305,8 @@ impl Pipeline {
         let viewports = [vk::Viewport {
             x: 0.0,
             y: 0.0,
-            width: swapchain.extent.width as f32,
-            height: swapchain.extent.height as f32,
+            width: swapchain.0.extent.width as f32,
+            height: swapchain.0.extent.height as f32,
             min_depth: 0.0,
             max_depth: 1.0,
         }];
@@ -314,7 +314,7 @@ impl Pipeline {
 
         let scissors = [vk::Rect2D {
             offset: vk::Offset2D { x: 0, y: 0 },
-            extent: swapchain.extent,
+            extent: swapchain.0.extent,
         }];
         unsafe { self.device.cmd_set_scissor(**command_buffer, 0, &scissors) };
     }

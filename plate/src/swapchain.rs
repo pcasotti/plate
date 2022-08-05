@@ -4,34 +4,112 @@ use ash::{extensions::khr, vk};
 
 use crate::{Device, sync::*, image::*, Error, CommandBuffer};
 
+/// Errors from the swapchain module.
 #[derive(thiserror::Error, Debug)]
 pub enum SwapchainError {
+    /// None of the available image formats match the depth requirements.
     #[error("No suitable depth format is available")]
     NoSuitableDepthFormat,
 }
 
-pub struct Swapchain(Swap);
-
-impl std::ops::Deref for Swapchain {
-    type Target = Swap;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
+/// The Swapchain is responsible for providing images to be rendered to the screen.
+pub struct Swapchain(pub(crate) Swap);
 
 impl Swapchain {
-    pub fn new(device: &Arc<Device>, window: &winit::window::Window, old_swapchain: Option<&Self>) -> Result<Self, Error> {
-        Ok(Self(Swap::new(device, window, old_swapchain)?))
+    /// Creates a Swapchain.
+    ///
+    /// # Examples
+    /// 
+    /// ```no_run
+    /// # struct Vertex(f32);
+    /// # let event_loop = winit::event_loop::EventLoop::new();
+    /// # let window = winit::window::WindowBuilder::new().build(&event_loop)?;
+    /// # let instance = plate::Instance::new(Some(&window), &Default::default())?;
+    /// # let surface = plate::Surface::new(&instance, &window)?;
+    /// # let device = plate::Device::new(instance, surface, &Default::default())?;
+    /// let swapchain = plate::swapchain::Swapchain::new(&device, &window)?;
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
+    /// ```
+    pub fn new(device: &Arc<Device>, window: &winit::window::Window) -> Result<Self, Error> {
+        Ok(Self(Swap::new(device, window, None)?))
     }
 
     pub fn recreate(&mut self, window: &winit::window::Window) -> Result<(), Error> {
         self.0.device.wait_idle()?;
         Ok(self.0 = Swap::new(&self.0.device, window, Some(&self))?)
     }
+
+    pub fn aspect_ratio(&self) -> f32 {
+        (self.0.extent.width as f32) / (self.0.extent.height as f32)
+    }
+
+    pub fn begin_render_pass(&self, command_buffer: &CommandBuffer, image_index: usize) {
+        let clear_values = [
+            vk::ClearValue {
+                color: vk::ClearColorValue {
+                    float32: [0.0, 0.0, 0.0, 1.0],
+                },
+            },
+            vk::ClearValue {
+                depth_stencil: vk::ClearDepthStencilValue {
+                    depth: 1.0,
+                    stencil: 0,
+                }
+            }
+        ];
+
+        let begin_info = vk::RenderPassBeginInfo::builder()
+            .render_pass(self.0.render_pass)
+            .framebuffer(self.0.framebuffers[image_index])
+            .render_area(vk::Rect2D {
+                offset: vk::Offset2D { x: 0, y: 0 },
+                extent: self.0.extent,
+            })
+            .clear_values(&clear_values);
+
+        unsafe {
+            self.0.device.cmd_begin_render_pass(
+                **command_buffer,
+                &begin_info,
+                vk::SubpassContents::INLINE,
+            )
+        }
+    }
+
+    pub fn end_render_pass(&self, command_buffer: &CommandBuffer) {
+        unsafe { self.0.device.cmd_end_render_pass(**command_buffer) }
+    }
+
+    pub fn next_image(&self, semaphore: &Semaphore) -> Result<(u32, bool), Error> {
+        Ok(unsafe {
+            self.0.swapchain_loader.acquire_next_image(
+                self.0.swapchain,
+                u64::MAX,
+                **semaphore,
+                vk::Fence::null(),
+            )?
+        })
+    }
+
+    pub fn present(&self, image_index: u32, wait_semaphore: &Semaphore) -> Result<bool, Error> {
+        let swapchains = [self.0.swapchain];
+        let wait_semaphores = [**wait_semaphore];
+        let image_indices = [image_index];
+
+        let present_info = vk::PresentInfoKHR::builder()
+            .wait_semaphores(&wait_semaphores)
+            .swapchains(&swapchains)
+            .image_indices(&image_indices);
+
+        Ok(unsafe { self.0.swapchain_loader.queue_present(self.0.device.present_queue.queue, &present_info)? })
+    }
+
+    pub fn image_count(&self) -> usize {
+        self.0.images.len()
+    }
 }
 
-pub struct Swap {
+pub(crate) struct Swap {
     device: Arc<Device>,
 
     pub swapchain_loader: khr::Swapchain,
@@ -147,7 +225,7 @@ impl Swap {
             .clipped(true);
 
         match old_swapchain {
-            Some(swapchain) => swapchain_info = swapchain_info.old_swapchain(swapchain.swapchain),
+            Some(swapchain) => swapchain_info = swapchain_info.old_swapchain(swapchain.0.swapchain),
             None => (),
         };
 
@@ -280,74 +358,5 @@ impl Swap {
             render_pass,
             framebuffers,
         })
-    }
-
-    pub fn aspect_ratio(&self) -> f32 {
-        (self.extent.width as f32) / (self.extent.height as f32)
-    }
-
-    pub fn begin_render_pass(&self, command_buffer: &CommandBuffer, image_index: usize) {
-        let clear_values = [
-            vk::ClearValue {
-                color: vk::ClearColorValue {
-                    float32: [0.0, 0.0, 0.0, 1.0],
-                },
-            },
-            vk::ClearValue {
-                depth_stencil: vk::ClearDepthStencilValue {
-                    depth: 1.0,
-                    stencil: 0,
-                }
-            }
-        ];
-
-        let begin_info = vk::RenderPassBeginInfo::builder()
-            .render_pass(self.render_pass)
-            .framebuffer(self.framebuffers[image_index])
-            .render_area(vk::Rect2D {
-                offset: vk::Offset2D { x: 0, y: 0 },
-                extent: self.extent,
-            })
-            .clear_values(&clear_values);
-
-        unsafe {
-            self.device.cmd_begin_render_pass(
-                **command_buffer,
-                &begin_info,
-                vk::SubpassContents::INLINE,
-            )
-        }
-    }
-
-    pub fn end_render_pass(&self, command_buffer: &CommandBuffer) {
-        unsafe { self.device.cmd_end_render_pass(**command_buffer) }
-    }
-
-    pub fn next_image(&self, semaphore: &Semaphore) -> Result<(u32, bool), Error> {
-        Ok(unsafe {
-            self.swapchain_loader.acquire_next_image(
-                self.swapchain,
-                u64::MAX,
-                **semaphore,
-                vk::Fence::null(),
-            )?
-        })
-    }
-
-    pub fn present(&self, image_index: u32, wait_semaphore: &Semaphore) -> Result<bool, Error> {
-        let swapchains = [self.swapchain];
-        let wait_semaphores = [**wait_semaphore];
-        let image_indices = [image_index];
-
-        let present_info = vk::PresentInfoKHR::builder()
-            .wait_semaphores(&wait_semaphores)
-            .swapchains(&swapchains)
-            .image_indices(&image_indices);
-
-        Ok(unsafe { self.swapchain_loader.queue_present(self.device.present_queue.queue, &present_info)? })
-    }
-
-    pub fn image_count(&self) -> usize {
-        self.images.len()
     }
 }
