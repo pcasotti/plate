@@ -34,15 +34,71 @@ impl Swapchain {
         Ok(Self(Swap::new(device, window, None)?))
     }
 
+    /// Recreates the swapchain.
+    ///
+    /// Sould be called if the window was resized or the surface format has changed.
+    ///
+    /// # Examples
+    /// 
+    /// ```no_run
+    /// # struct Vertex(f32);
+    /// # let event_loop = winit::event_loop::EventLoop::new();
+    /// # let window = winit::window::WindowBuilder::new().build(&event_loop)?;
+    /// # let instance = plate::Instance::new(Some(&window), &Default::default())?;
+    /// # let surface = plate::Surface::new(&instance, &window)?;
+    /// # let device = plate::Device::new(instance, surface, &Default::default())?;
+    /// let mut swapchain = plate::swapchain::Swapchain::new(&device, &window)?;
+    /// swapchain.recreate(&window)?;
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
+    /// ```
     pub fn recreate(&mut self, window: &winit::window::Window) -> Result<(), Error> {
         self.0.device.wait_idle()?;
         Ok(self.0 = Swap::new(&self.0.device, window, Some(&self))?)
     }
 
+    /// Returns the aspect ration of the extent.
+    ///
+    /// # Examples
+    /// 
+    /// ```no_run
+    /// # struct Vertex(f32);
+    /// # let event_loop = winit::event_loop::EventLoop::new();
+    /// # let window = winit::window::WindowBuilder::new().build(&event_loop)?;
+    /// # let instance = plate::Instance::new(Some(&window), &Default::default())?;
+    /// # let surface = plate::Surface::new(&instance, &window)?;
+    /// # let device = plate::Device::new(instance, surface, &Default::default())?;
+    /// # let mut swapchain = plate::swapchain::Swapchain::new(&device, &window)?;
+    /// let aspect_ratio = swapchain.aspect_ratio();
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
+    /// ```
     pub fn aspect_ratio(&self) -> f32 {
         (self.0.extent.width as f32) / (self.0.extent.height as f32)
     }
 
+    /// Begins the Swapchain render pass.
+    ///
+    /// To be used when recording a CommandBuffer. Any call do a draw command in between this and a
+    /// call to [`end_render_pass\(\)`] will draw to this swapchain render pass.
+    ///
+    /// # Examples
+    /// 
+    /// ```no_run
+    /// # struct Vertex(f32);
+    /// # let event_loop = winit::event_loop::EventLoop::new();
+    /// # let window = winit::window::WindowBuilder::new().build(&event_loop)?;
+    /// # let instance = plate::Instance::new(Some(&window), &Default::default())?;
+    /// # let surface = plate::Surface::new(&instance, &window)?;
+    /// # let device = plate::Device::new(instance, surface, &Default::default())?;
+    /// # let cmd_pool = plate::CommandPool::new(&device)?;
+    /// # let cmd_buffer = cmd_pool.alloc_cmd_buffer(plate::CommandBufferLevel::PRIMARY)?;
+    /// # let mut swapchain = plate::swapchain::Swapchain::new(&device, &window)?;
+    /// # let image_index = 0;
+    /// // cmd_buffer.record(.., || {
+    ///     swapchain.begin_render_pass(&cmd_buffer, image_index);
+    ///     // cmd_buffer.draw(..);
+    /// // })?;
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
+    /// ```
     pub fn begin_render_pass(&self, command_buffer: &CommandBuffer, image_index: usize) {
         let clear_values = [
             vk::ClearValue {
@@ -76,10 +132,51 @@ impl Swapchain {
         }
     }
 
+    /// Ends the Swapchain render pass.
+    ///
+    /// To be used when recording a CommandBuffer after calling [`begin_render_pass\(\)`] and the
+    /// desired draw commands.
+    ///
+    /// # Examples
+    /// 
+    /// ```no_run
+    /// # let event_loop = winit::event_loop::EventLoop::new();
+    /// # let window = winit::window::WindowBuilder::new().build(&event_loop)?;
+    /// # let instance = plate::Instance::new(Some(&window), &Default::default())?;
+    /// # let surface = plate::Surface::new(&instance, &window)?;
+    /// # let device = plate::Device::new(instance, surface, &Default::default())?;
+    /// # let cmd_pool = plate::CommandPool::new(&device)?;
+    /// # let cmd_buffer = cmd_pool.alloc_cmd_buffer(plate::CommandBufferLevel::PRIMARY)?;
+    /// # let mut swapchain = plate::swapchain::Swapchain::new(&device, &window)?;
+    /// # let image_index = 0;
+    /// // cmd_buffer.record(.., || {
+    ///     // cmd_buffer.draw(..);
+    ///     swapchain.end_render_pass(&cmd_buffer);
+    /// // })?;
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
+    /// ```
     pub fn end_render_pass(&self, command_buffer: &CommandBuffer) {
         unsafe { self.0.device.cmd_end_render_pass(**command_buffer) }
     }
 
+    /// Acquires the next available swapchain image.
+    ///
+    /// Returns the index of the next available image from the swapchain and whetherthe swapchain
+    /// is suboptimal. Will signal the provided semaphore when done.
+    ///
+    /// # Examples
+    /// 
+    /// ```no_run
+    /// # let event_loop = winit::event_loop::EventLoop::new();
+    /// # let window = winit::window::WindowBuilder::new().build(&event_loop)?;
+    /// # let instance = plate::Instance::new(Some(&window), &Default::default())?;
+    /// # let surface = plate::Surface::new(&instance, &window)?;
+    /// # let device = plate::Device::new(instance, surface, &Default::default())?;
+    /// # let mut swapchain = plate::swapchain::Swapchain::new(&device, &window)?;
+    /// # let acquire_sem = plate::Semaphore::new(&device, plate::SemaphoreFlags::empty())?;
+    /// let (image_index, _) = swapchain.next_image(&acquire_sem).unwrap();
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
+    /// ```
     pub fn next_image(&self, semaphore: &Semaphore) -> Result<(u32, bool), Error> {
         Ok(unsafe {
             self.0.swapchain_loader.acquire_next_image(
@@ -91,6 +188,24 @@ impl Swapchain {
         })
     }
 
+    /// Present the image at `image_index` to the screen.
+    ///
+    /// Will wait on wait_semaphore.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # let event_loop = winit::event_loop::EventLoop::new();
+    /// # let window = winit::window::WindowBuilder::new().build(&event_loop)?;
+    /// # let instance = plate::Instance::new(Some(&window), &Default::default())?;
+    /// # let surface = plate::Surface::new(&instance, &window)?;
+    /// # let device = plate::Device::new(instance, surface, &Default::default())?;
+    /// # let mut swapchain = plate::swapchain::Swapchain::new(&device, &window)?;
+    /// # let present_sem = plate::Semaphore::new(&device, plate::SemaphoreFlags::empty())?;
+    /// let image_index = 0;
+    /// swapchain.present(image_index, &present_sem).unwrap();
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
+    /// ```
     pub fn present(&self, image_index: u32, wait_semaphore: &Semaphore) -> Result<bool, Error> {
         let swapchains = [self.0.swapchain];
         let wait_semaphores = [**wait_semaphore];
@@ -103,10 +218,6 @@ impl Swapchain {
 
         Ok(unsafe { self.0.swapchain_loader.queue_present(self.0.device.present_queue.queue, &present_info)? })
     }
-
-    pub fn image_count(&self) -> usize {
-        self.0.images.len()
-    }
 }
 
 pub(crate) struct Swap {
@@ -117,6 +228,7 @@ pub(crate) struct Swap {
 
     pub extent: vk::Extent2D,
 
+    #[allow(dead_code)]
     images: Vec<vk::Image>,
     image_views: Vec<vk::ImageView>,
 
