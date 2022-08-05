@@ -22,7 +22,7 @@ impl VertexBindingDescription {
     ///
     /// # Examples
     ///
-    /// ```
+    /// ```no_run
     /// struct Vertex(u32);
     /// let binding_description = plate::VertexBindingDescription::new(
     ///     0,
@@ -46,7 +46,7 @@ impl VertexAttributeDescription {
     ///
     /// # Examples
     ///
-    /// ```
+    /// ```no_run
     /// struct Vertex{
     ///     f1: u32,
     /// };

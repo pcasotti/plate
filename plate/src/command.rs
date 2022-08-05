@@ -7,6 +7,7 @@ use crate::{Device, Error};
 pub use vk::CommandBufferLevel as CommandBufferLevel;
 pub use vk::CommandBufferUsageFlags as CommandBufferUsageFlags;
 
+/// Holds a [`vk::CommandPool`], used to allocate [`CommandBuffers`](CommandBuffer).
 pub struct CommandPool {
     device: Arc<Device>,
     cmd_pool: vk::CommandPool,
@@ -29,6 +30,19 @@ impl Drop for CommandPool {
 }
 
 impl CommandPool {
+    /// Creates a CommandPool.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # let event_loop = winit::event_loop::EventLoop::new();
+    /// # let window = winit::window::WindowBuilder::new().build(&event_loop)?;
+    /// # let instance = plate::Instance::new(Some(&window), &Default::default())?;
+    /// # let surface = plate::Surface::new(&instance, &window)?;
+    /// # let device = plate::Device::new(instance, surface, &Default::default())?;
+    /// let cmd_pool = plate::CommandPool::new(&device)?;
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
+    /// ```
     pub fn new(device: &Arc<Device>) -> Result<Self, Error> {
         let pool_info = vk::CommandPoolCreateInfo::builder()
             .flags(vk::CommandPoolCreateFlags::RESET_COMMAND_BUFFER)
@@ -42,6 +56,20 @@ impl CommandPool {
         })
     }
 
+    /// Allocates CommandBuffers.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # let event_loop = winit::event_loop::EventLoop::new();
+    /// # let window = winit::window::WindowBuilder::new().build(&event_loop)?;
+    /// # let instance = plate::Instance::new(Some(&window), &Default::default())?;
+    /// # let surface = plate::Surface::new(&instance, &window)?;
+    /// # let device = plate::Device::new(instance, surface, &Default::default())?;
+    /// # let cmd_pool = plate::CommandPool::new(&device)?;
+    /// let cmd_buffers = cmd_pool.alloc_cmd_buffers(plate::CommandBufferLevel::PRIMARY, 2)?;
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
+    /// ```
     pub fn alloc_cmd_buffers(&self, level: CommandBufferLevel, cmd_buffer_count: u32) -> Result<Vec<CommandBuffer>, Error> {
         let alloc_info = vk::CommandBufferAllocateInfo::builder()
             .command_pool(self.cmd_pool)
@@ -54,11 +82,26 @@ impl CommandPool {
             .collect())
     }
 
+    /// Allocates a single CommandBuffer.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # let event_loop = winit::event_loop::EventLoop::new();
+    /// # let window = winit::window::WindowBuilder::new().build(&event_loop)?;
+    /// # let instance = plate::Instance::new(Some(&window), &Default::default())?;
+    /// # let surface = plate::Surface::new(&instance, &window)?;
+    /// # let device = plate::Device::new(instance, surface, &Default::default())?;
+    /// # let cmd_pool = plate::CommandPool::new(&device)?;
+    /// let cmd_buffer = cmd_pool.alloc_cmd_buffer(plate::CommandBufferLevel::PRIMARY)?;
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
+    /// ```
     pub fn alloc_cmd_buffer(&self, level: CommandBufferLevel) -> Result<CommandBuffer, Error> {
         Ok(self.alloc_cmd_buffers(level, 1)?.swap_remove(0))
     }
 }
 
+/// Used to send instructions to the GPU.
 pub struct CommandBuffer {
     device: Arc<Device>,
     cmd_pool: vk::CommandPool,
@@ -82,6 +125,23 @@ impl Drop for CommandBuffer {
 }
 
 impl CommandBuffer {
+    /// Records instructions to this command buffer.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # let event_loop = winit::event_loop::EventLoop::new();
+    /// # let window = winit::window::WindowBuilder::new().build(&event_loop)?;
+    /// # let instance = plate::Instance::new(Some(&window), &Default::default())?;
+    /// # let surface = plate::Surface::new(&instance, &window)?;
+    /// # let device = plate::Device::new(instance, surface, &Default::default())?;
+    /// # let cmd_pool = plate::CommandPool::new(&device)?;
+    /// # let cmd_buffer = cmd_pool.alloc_cmd_buffer(plate::CommandBufferLevel::PRIMARY)?;
+    /// cmd_buffer.record(plate::CommandBufferUsageFlags::empty(), || {
+    ///     // cmd_buffer.draw(..);
+    /// })?;
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
+    /// ```
     pub fn record<F: FnOnce()>(&self, flags: CommandBufferUsageFlags, f: F) -> Result<(), Error> {
         self.begin(flags)?;
         f();
@@ -103,10 +163,48 @@ impl CommandBuffer {
         Ok(())
     }
 
+    /// Calls a [`draw`](ash::Device::cmd_draw()) command.
+    ///
+    /// To be used when recording a CommandBuffer.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # let event_loop = winit::event_loop::EventLoop::new();
+    /// # let window = winit::window::WindowBuilder::new().build(&event_loop)?;
+    /// # let instance = plate::Instance::new(Some(&window), &Default::default())?;
+    /// # let surface = plate::Surface::new(&instance, &window)?;
+    /// # let device = plate::Device::new(instance, surface, &Default::default())?;
+    /// # let cmd_pool = plate::CommandPool::new(&device)?;
+    /// # let cmd_buffer = cmd_pool.alloc_cmd_buffer(plate::CommandBufferLevel::PRIMARY)?;
+    /// cmd_buffer.record(plate::CommandBufferUsageFlags::empty(), || {
+    ///     cmd_buffer.draw(3, 1, 0, 0);
+    /// })?;
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
+    /// ```
     pub fn draw(&self, vert_count: u32, instance_count: u32, first_vert: u32, first_instance: u32) {
         unsafe { self.device.cmd_draw(self.cmd_buffer, vert_count, instance_count, first_vert, first_instance) }
     }
 
+    /// Calls a [`draw_indexed`](ash::Device::cmd_draw_indexed()) command.
+    ///
+    /// To be used when recording a CommandBuffer.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # let event_loop = winit::event_loop::EventLoop::new();
+    /// # let window = winit::window::WindowBuilder::new().build(&event_loop)?;
+    /// # let instance = plate::Instance::new(Some(&window), &Default::default())?;
+    /// # let surface = plate::Surface::new(&instance, &window)?;
+    /// # let device = plate::Device::new(instance, surface, &Default::default())?;
+    /// # let cmd_pool = plate::CommandPool::new(&device)?;
+    /// # let cmd_buffer = cmd_pool.alloc_cmd_buffer(plate::CommandBufferLevel::PRIMARY)?;
+    /// cmd_buffer.record(plate::CommandBufferUsageFlags::empty(), || {
+    ///     cmd_buffer.draw_indexed(3, 1, 0, 0, 0);
+    /// })?;
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
+    /// ```
     pub fn draw_indexed(&self, index_count: u32, instance_count: u32, first_index: u32, vertex_offset: i32, first_instance: u32) {
         unsafe { self.device.cmd_draw_indexed(self.cmd_buffer, index_count, instance_count, first_index, vertex_offset, first_instance) }
     }
