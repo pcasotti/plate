@@ -61,7 +61,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         &plate::PipelineParameters {
             vertex_binding_descriptions: Vert::binding_descriptions(),
             vertex_attribute_descriptions: Vert::attribute_descriptions(),
-            descriptor_set_layout: Some(&set_layout),
+            descriptor_set_layout: &[&set_layout],
         },
     )?;
 
@@ -166,7 +166,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     pipeline.bind(&cmd_buffer, &swapchain);
                     vert_buffer.bind(&cmd_buffer);
                     index_buffer.bind(&cmd_buffer);
-                    descriptor_set.bind(&cmd_buffer, pipeline.layout);
+                    descriptor_set.bind(&cmd_buffer, &pipeline);
 
                     cmd_buffer.draw_indexed(indices.len() as u32, 1, 0, 0, 0);
                     swapchain.end_render_pass(&cmd_buffer);

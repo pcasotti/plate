@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use ash::vk;
 
-use crate::{image::*, Buffer, CommandBuffer, Device, Error};
+use crate::{image::*, Buffer, CommandBuffer, Device, Error, Pipeline};
 
 pub use vk::DescriptorType;
 pub use vk::ShaderStageFlags as ShaderStage;
@@ -428,16 +428,16 @@ impl DescriptorSet {
     /// let descriptor_set = plate::DescriptorAllocator::new(&device).allocate(&layout, &pool)?;
     /// // cmd_buffer.record(.., || {
     ///     // pipeline.bind(..);
-    ///     descriptor_set.bind(&cmd_buffer, pipeline.layout);
+    ///     descriptor_set.bind(&cmd_buffer, &pipeline);
     /// // })?;
     /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// ```
-    pub fn bind(&self, cmd_buffer: &CommandBuffer, layout: vk::PipelineLayout) {
+    pub fn bind(&self, cmd_buffer: &CommandBuffer, pipeline: &Pipeline) {
         unsafe {
             self.device.cmd_bind_descriptor_sets(
                 **cmd_buffer,
                 ash::vk::PipelineBindPoint::GRAPHICS,
-                layout,
+                pipeline.layout,
                 0,
                 &[self.set],
                 &[],

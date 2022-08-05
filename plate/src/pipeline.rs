@@ -6,10 +6,31 @@ use crate::{DescriptorSetLayout, Device, Swapchain, Format, Error, CommandBuffer
 
 pub use vk::VertexInputRate as InputRate;
 
+/// Vertex binding information.
+///
+/// Describes the size of a vertex and the binding to access it in the shader.
 pub struct VertexBindingDescription(vk::VertexInputBindingDescription);
+
+/// Vertex attribute information to pass to the shader.
+///
+/// Describes the offset of a field of a vector, its format and the corresponding binding and
+/// location on the shader.
 pub struct VertexAttributeDescription(vk::VertexInputAttributeDescription);
 
 impl VertexBindingDescription {
+    /// Creates a VertexBindingDescription.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// struct Vertex(u32);
+    /// let binding_description = plate::VertexBindingDescription::new(
+    ///     0,
+    ///     std::mem::size_of::<Vertex>() as u32,
+    ///     plate::InputRate::VERTEX,
+    /// );
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
+    /// ```
     pub fn new(binding: u32, stride: u32, input_rate: InputRate) -> Self {
         Self(
             *ash::vk::VertexInputBindingDescription::builder()
@@ -21,6 +42,22 @@ impl VertexBindingDescription {
 }
 
 impl VertexAttributeDescription {
+    /// Creates a VertexAttributeDescription.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// struct Vertex{
+    ///     f1: u32,
+    /// };
+    /// plate::VertexAttributeDescription::new(
+    ///     0,
+    ///     0,
+    ///     memoffset::offset_of!(Vertex, f1) as u32,
+    ///     plate::Format::R32_UINT,
+    /// );
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
+    /// ```
     pub fn new(binding: u32, location: u32, offset: u32, format: Format) -> Self {
         Self(
             *ash::vk::VertexInputAttributeDescription::builder()
@@ -32,15 +69,22 @@ impl VertexAttributeDescription {
     }
 }
 
+/// Trait for vertex structs, with binding and attribute descriptions.
 pub trait VertexDescription {
+    /// Returns a Vec of BindingDescriptions corresponding to a vertex.
     fn binding_descriptions() -> Vec<VertexBindingDescription>;
+    /// Returns a Vec of AttributeDescriptions corresponding to the fields of a vertex.
     fn attribute_descriptions() -> Vec<VertexAttributeDescription>;
 }
 
+/// Vertex and descriptor information for [`Pipeline`] creation.
 pub struct PipelineParameters<'a> {
+    /// BindingDescriptions of the vertex to be used by the pipeline.
     pub vertex_binding_descriptions: Vec<VertexBindingDescription>,
+    /// AttributeDescriptions of the vertex to be used by the pipeline.
     pub vertex_attribute_descriptions: Vec<VertexAttributeDescription>,
-    pub descriptor_set_layout: Option<&'a DescriptorSetLayout>,
+    /// DescriptorSetLayouts to be used by the pipeline.
+    pub descriptor_set_layout: &'a [&'a DescriptorSetLayout],
 }
 
 impl<'a> Default for PipelineParameters<'_> {
@@ -48,15 +92,19 @@ impl<'a> Default for PipelineParameters<'_> {
         Self {
             vertex_binding_descriptions: vec![],
             vertex_attribute_descriptions: vec![],
-            descriptor_set_layout: None,
+            descriptor_set_layout: &[],
         }
     }
 }
 
+/// A vulkan graphics pipeline
+///
+/// The Pipeline is responsible for executing all the operations needed to transform the vertices
+/// of a scene into the pixels in the rendered image.
 pub struct Pipeline {
     device: Arc<Device>,
     pipeline: vk::Pipeline,
-    pub layout: vk::PipelineLayout,
+    pub(crate) layout: vk::PipelineLayout,
     vert_shader: vk::ShaderModule,
     frag_shader: vk::ShaderModule,
 }
@@ -74,15 +122,38 @@ impl Drop for Pipeline {
 }
 
 impl Pipeline {
+    /// Creates a Pipeline.
+    ///
+    /// The vertex input data in the shaders must match the binding and attribute descriptions
+    /// specified in `params`.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # let event_loop = winit::event_loop::EventLoop::new();
+    /// # let window = winit::window::WindowBuilder::new().build(&event_loop)?;
+    /// # let instance = plate::Instance::new(Some(&window), &Default::default())?;
+    /// # let surface = plate::Surface::new(&instance, &window)?;
+    /// # let device = plate::Device::new(instance, surface, &Default::default())?;
+    /// # let mut swapchain = plate::swapchain::Swapchain::new(&device, &window, None)?;
+    /// let pipeline = plate::pipeline::Pipeline::new(
+    ///     &device,
+    ///     &swapchain,
+    ///     vk_shader_macros::include_glsl!("shaders/triangle/shader.vert"),
+    ///     vk_shader_macros::include_glsl!("shaders/triangle/shader.frag"),
+    ///     &Default::default(),
+    /// )?;
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
+    /// ```
     pub fn new(
         device: &Arc<Device>,
         swapchain: &Swapchain,
         vert_code: &[u32],
         frag_code: &[u32],
-        parameters: &PipelineParameters,
+        params: &PipelineParameters,
     ) -> Result<Self, Error> {
-        let binding_descriptions: Vec<_> = parameters.vertex_binding_descriptions.iter().map(|b| b.0).collect();
-        let attribute_descriptions: Vec<_> = parameters.vertex_attribute_descriptions.iter().map(|a| a.0).collect();
+        let binding_descriptions: Vec<_> = params.vertex_binding_descriptions.iter().map(|b| b.0).collect();
+        let attribute_descriptions: Vec<_> = params.vertex_attribute_descriptions.iter().map(|a| a.0).collect();
 
         let vert_shader_info = vk::ShaderModuleCreateInfo::builder().code(vert_code);
         let frag_shader_info = vk::ShaderModuleCreateInfo::builder().code(frag_code);
@@ -157,10 +228,9 @@ impl Pipeline {
         let color_blend =
             vk::PipelineColorBlendStateCreateInfo::builder().attachments(&color_blend_attachments);
 
-        let layouts = match &parameters.descriptor_set_layout {
-            Some(layout) => vec![layout.layout],
-            None => vec![],
-        };
+        let layouts = params.descriptor_set_layout.into_iter()
+            .map(|l| l.layout)
+            .collect::<Vec<_>>();
         let layout_info = vk::PipelineLayoutCreateInfo::builder().set_layouts(&layouts);
         let layout = unsafe {
             device.create_pipeline_layout(&layout_info, None)?
@@ -204,6 +274,29 @@ impl Pipeline {
         })
     }
 
+    /// Binds the Pipeline.
+    ///
+    /// To be used when recording a command buffer.
+    ///
+    /// # Examples
+    /// 
+    /// ```no_run
+    /// # struct Vertex(f32);
+    /// # let event_loop = winit::event_loop::EventLoop::new();
+    /// # let window = winit::window::WindowBuilder::new().build(&event_loop)?;
+    /// # let instance = plate::Instance::new(Some(&window), &Default::default())?;
+    /// # let surface = plate::Surface::new(&instance, &window)?;
+    /// # let device = plate::Device::new(instance, surface, &Default::default())?;
+    /// # let cmd_pool = plate::CommandPool::new(&device)?;
+    /// # let cmd_buffer = cmd_pool.alloc_cmd_buffer(plate::CommandBufferLevel::PRIMARY)?;
+    /// # let swapchain = plate::swapchain::Swapchain::new(&device, &window, None)?;
+    /// # let pipeline = plate::pipeline::Pipeline::new(&device, &swapchain, &[], &[],
+    /// # &Default::default())?;
+    /// // cmd_buffer.record(.., || {
+    ///     pipeline.bind(&cmd_buffer, &swapchain);
+    /// // })?;
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
+    /// ```
     pub fn bind(&self, command_buffer: &CommandBuffer, swapchain: &Swapchain) {
         unsafe {
             self.device.cmd_bind_pipeline(**command_buffer, vk::PipelineBindPoint::GRAPHICS, self.pipeline)
