@@ -1,3 +1,4 @@
+#![warn(missing_docs)]
 use std::sync::Arc;
 
 use ash::vk;
@@ -9,29 +10,45 @@ pub use vk::SamplerAddressMode as SamplerAddressMode;
 pub use vk::ImageUsageFlags as ImageUsageFlags;
 pub use vk::ImageAspectFlags as ImageAspectFlags;
 
+/// Filter mode for a [`Sampler`].
+///
+/// Describes how to interpolate texels.
 pub struct SamplerFilter {
+    /// How to handle magnified texels.
     pub min: Filter,
+    /// How to handle minified texels.
     pub mag: Filter,
 }
 
 impl SamplerFilter {
+    /// Linear filtering.
     pub const LINEAR: Self = Self { min: Filter::LINEAR, mag: Filter::LINEAR };
+    /// Nearest filtering.
     pub const NEAREST: Self = Self { min: Filter::NEAREST, mag: Filter::LINEAR };
-    pub const CUBIC_IMG: Self = Self { min: Filter::CUBIC_IMG, mag: Filter::CUBIC_IMG };
+    /// Cubic filtering.
     pub const CUBIC_EXT: Self = Self { min: Filter::CUBIC_EXT, mag: Filter::CUBIC_EXT };
 }
 
+/// How to address coordinates outside the image bounds.
 pub struct SamplerAddress {
+    /// U coordinates address mode.
     pub u: SamplerAddressMode,
+    /// V coordinates address mode.
     pub v: SamplerAddressMode,
+    /// W coordinates address mode.
     pub w: SamplerAddressMode,
 }
 
 impl SamplerAddress {
+    /// Repeat the image in all coordinates.
     pub const REPEAT: Self = Self::all(SamplerAddressMode::REPEAT);
+    /// Repeat and mirror the image in all coordinates.
     pub const MIRRORED_REPEAT: Self = Self::all(SamplerAddressMode::MIRRORED_REPEAT);
+    /// Repeat the edge color in all coordinates.
     pub const CLAMP_TO_EDGE: Self = Self::all(SamplerAddressMode::CLAMP_TO_EDGE);
+    /// Repeat the border color (black) in all coordinates.
     pub const CLAMP_TO_BORDER: Self = Self::all(SamplerAddressMode::CLAMP_TO_BORDER);
+    /// Repeat the oposite edge color in all coordinates.
     pub const MIRROR_CLAMP_TO_EDGE: Self = Self::all(SamplerAddressMode::MIRROR_CLAMP_TO_EDGE);
 
     const fn all(mode: SamplerAddressMode) -> Self {
@@ -39,8 +56,11 @@ impl SamplerAddress {
     }
 }
 
+/// Optional parameters for [`Sampler creation`].
 pub struct SamplerParams {
+    /// Filter mode for the sampler.
     pub filter: SamplerFilter,
+    /// Address mode for the sampler.
     pub address_mode: SamplerAddress,
 }
 
@@ -53,6 +73,7 @@ impl Default for SamplerParams {
     }
 }
 
+/// Describes how to sample a image texture.
 pub struct Sampler {
     device: Arc<Device>,
     sampler: vk::Sampler,
@@ -67,6 +88,19 @@ impl Drop for Sampler {
 }
 
 impl Sampler {
+    /// Creates a Sampler.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # let event_loop = winit::event_loop::EventLoop::new();
+    /// # let window = winit::window::WindowBuilder::new().build(&event_loop)?;
+    /// # let instance = plate::Instance::new(Some(&window), &Default::default())?;
+    /// # let surface = plate::Surface::new(&instance, &window)?;
+    /// # let device = plate::Device::new(instance, surface, &Default::default())?;
+    /// let sampler = plate::Sampler::new(&device, &Default::default())?;
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
+    /// ```
     pub fn new(device: &Arc<Device>, params: &SamplerParams) -> Result<Self, Error> {
         let sampler_info = vk::SamplerCreateInfo::builder()
             .mag_filter(params.filter.min)
@@ -94,12 +128,15 @@ impl Sampler {
     }
 }
 
+/// Represents a 2 dimesional array of data.
 pub struct Image {
     device: Arc<Device>,
-    pub image: vk::Image,
+    image: vk::Image,
     mem: vk::DeviceMemory,
-    pub view: vk::ImageView,
+    pub(crate) view: vk::ImageView,
+    /// The width of the image.
     pub width: u32,
+    /// The height of the image.
     pub height: u32,
 }
 
@@ -114,6 +151,28 @@ impl Drop for Image {
 }
 
 impl Image {
+    /// Creates a Image.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # let event_loop = winit::event_loop::EventLoop::new();
+    /// # let window = winit::window::WindowBuilder::new().build(&event_loop)?;
+    /// # let instance = plate::Instance::new(Some(&window), &Default::default())?;
+    /// # let surface = plate::Surface::new(&instance, &window)?;
+    /// # let device = plate::Device::new(instance, surface, &Default::default())?;
+    /// # let cmd_pool = plate::CommandPool::new(&device)?;
+    /// # let (width, height) = (0, 0);
+    /// let image = plate::Image::new(
+    ///     &device,
+    ///     width,
+    ///     height,
+    ///     plate::Format::R8G8B8A8_SRGB,
+    ///     plate::ImageUsageFlags::TRANSFER_DST | plate::ImageUsageFlags::SAMPLED,
+    ///     plate::ImageAspectFlags::COLOR,
+    /// )?;
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
+    /// ```
     pub fn new(device: &Arc<Device>, width: u32, height: u32, format: Format, usage: ImageUsageFlags, image_aspect: ImageAspectFlags) -> Result<Self, Error> {
         let image_info = vk::ImageCreateInfo::builder()
             .image_type(vk::ImageType::TYPE_2D)
@@ -176,7 +235,7 @@ impl Image {
         })
     }
 
-    pub fn descriptor_info(&self, sampler: &Sampler) -> vk::DescriptorImageInfo {
+    pub(crate) fn descriptor_info(&self, sampler: &Sampler) -> vk::DescriptorImageInfo {
         *vk::DescriptorImageInfo::builder()
             .image_layout(vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL)
             .image_view(self.view)
@@ -184,6 +243,7 @@ impl Image {
     }
 }
 
+/// Holds a [`Image`] with texture data in it.
 pub struct Texture(Image);
 
 impl std::ops::Deref for Texture {
@@ -195,6 +255,22 @@ impl std::ops::Deref for Texture {
 }
 
 impl Texture {
+    /// Creates a Texture from a &[u8].
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # let event_loop = winit::event_loop::EventLoop::new();
+    /// # let window = winit::window::WindowBuilder::new().build(&event_loop)?;
+    /// # let instance = plate::Instance::new(Some(&window), &Default::default())?;
+    /// # let surface = plate::Surface::new(&instance, &window)?;
+    /// # let device = plate::Device::new(instance, surface, &Default::default())?;
+    /// # let cmd_pool = plate::CommandPool::new(&device)?;
+    /// # let (width, height) = (0, 0);
+    /// # let data = [0];
+    /// let image = plate::Texture::new(&device, &cmd_pool, width, height, &data)?;
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
+    /// ```
     pub fn new(device: &Arc<Device>, cmd_pool: &CommandPool, width: u32, height: u32, data: &[u8]) -> Result<Self, Error> {
         let staging = Buffer::new(
             device,
