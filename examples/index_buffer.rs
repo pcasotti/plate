@@ -92,9 +92,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     device.graphics_queue,
                     &cmd_buffer,
                     plate::PipelineStage::COLOR_ATTACHMENT_OUTPUT,
-                    &acquire_sem,
-                    &present_sem,
-                    &fence,
+                    Some(&acquire_sem),
+                    Some(&present_sem),
+                    Some(&fence),
                 ).unwrap();
 
                 swapchain.present(i, &present_sem).unwrap();

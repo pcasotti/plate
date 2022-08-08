@@ -195,9 +195,9 @@ impl Device {
     ///     device.graphics_queue,
     ///     &cmd_buffer,
     ///     plate::PipelineStage::COLOR_ATTACHMENT_OUTPUT,
-    ///     &acquire_sem,
-    ///     &present_sem,
-    ///     &fence,
+    ///     Some(&acquire_sem),
+    ///     Some(&present_sem),
+    ///     Some(&fence),
     /// )?;
     /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// ```
@@ -206,21 +206,21 @@ impl Device {
         queue: Queue,
         command_buffer: &CommandBuffer,
         wait_stage: PipelineStage,
-        wait_semaphore: &Semaphore,
-        signal_semaphore: &Semaphore,
-        fence: &Fence
+        wait_semaphore: Option<&Semaphore>,
+        signal_semaphore: Option<&Semaphore>,
+        fence: Option<&Fence>
     ) -> Result<(), Error> {
         let wait_semaphores = match wait_semaphore {
-            Semaphore::Semaphore { device: _, semaphore: _} => vec![**wait_semaphore],
-            Semaphore::None => vec![],
+            Some(s) => vec![**s],
+            None => vec![],
         };
         let signal_semaphores = match signal_semaphore {
-            Semaphore::Semaphore { device: _, semaphore: _} => vec![**signal_semaphore],
-            Semaphore::None => vec![],
+            Some(s) => vec![**s],
+            None => vec![],
         };
         let fence = match fence {
-            Fence::Fence { .. } => **fence,
-            Fence::None => vk::Fence::null(),
+            Some(f) => **f,
+            None => vk::Fence::null(),
         };
         let wait_stages = match wait_stage {
             vk::PipelineStageFlags::NONE => vec![],

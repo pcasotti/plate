@@ -2,7 +2,7 @@ use std::{ffi, marker, mem, sync::Arc};
 
 use ash::vk;
 
-use crate::{Device, PipelineStage, command::*, sync::*, Error, MemoryPropertyFlags};
+use crate::{Device, PipelineStage, command::*, Error, MemoryPropertyFlags};
 
 pub use vk::BufferUsageFlags as BufferUsageFlags;
 pub use vk::SharingMode as SharingMode;
@@ -407,7 +407,7 @@ impl<T> Buffer<T> {
             };
         })?;
 
-        self.device.queue_submit(self.device.graphics_queue, &command_buffer, PipelineStage::empty(), &Semaphore::None, &Semaphore::None, &Fence::None)?;
+        self.device.queue_submit(self.device.graphics_queue, &command_buffer, PipelineStage::empty(), None, None, None)?;
         Ok(unsafe { self.device.queue_wait_idle(self.device.graphics_queue.queue)? })
     }
 
@@ -434,7 +434,7 @@ impl<T> Buffer<T> {
             unsafe { self.device.cmd_copy_buffer_to_image(*cmd_buffer, self.buffer, image, vk::ImageLayout::TRANSFER_DST_OPTIMAL, &[*region]) };
         })?;
 
-        self.device.queue_submit(self.device.graphics_queue, &cmd_buffer, PipelineStage::empty(), &Semaphore::None, &Semaphore::None, &Fence::None)?;
+        self.device.queue_submit(self.device.graphics_queue, &cmd_buffer, PipelineStage::empty(), None, None, None)?;
         Ok(unsafe { self.device.queue_wait_idle(self.device.graphics_queue.queue)? })
     }
 

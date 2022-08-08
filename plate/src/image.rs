@@ -1,10 +1,7 @@
 use std::sync::Arc;
 
 use ash::vk;
-
-use crate::{Buffer, Device, command::*, PipelineStage, sync::*, Format, Error, MemoryPropertyFlags};
-
-pub use vk::Filter as Filter;
+use crate::{Buffer, Device, command::*, PipelineStage, Format, Error, MemoryPropertyFlags}; pub use vk::Filter as Filter;
 pub use vk::SamplerAddressMode as SamplerAddressMode;
 pub use vk::ImageUsageFlags as ImageUsageFlags;
 pub use vk::ImageAspectFlags as ImageAspectFlags;
@@ -338,6 +335,6 @@ fn transition_layout(device: &Arc<Device>, image: vk::Image, cmd_pool: &CommandP
         ) };
     })?;
 
-    device.queue_submit(device.graphics_queue, &cmd_buffer, PipelineStage::empty(), &Semaphore::None, &Semaphore::None, &Fence::None)?;
+    device.queue_submit(device.graphics_queue, &cmd_buffer, PipelineStage::empty(), None, None, None)?;
     Ok(unsafe { device.queue_wait_idle(device.graphics_queue.queue)? })
 }
