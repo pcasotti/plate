@@ -84,7 +84,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         1,
         plate::BufferUsageFlags::UNIFORM_BUFFER,
         plate::SharingMode::EXCLUSIVE,
-        plate::MemoryPropertyFlags::HOST_VISIBLE | plate::MemoryPropertyFlags::HOST_VISIBLE,
+        plate::MemoryPropertyFlags::HOST_VISIBLE | plate::MemoryPropertyFlags::HOST_COHERENT,
     )?;
 
     let descriptor_set = plate::DescriptorAllocator::new(&device)

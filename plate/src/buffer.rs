@@ -191,7 +191,7 @@ impl<T> MappedBuffer<T> {
     ///     # 2,
     ///     # plate::BufferUsageFlags::UNIFORM_BUFFER,
     ///     # plate::SharingMode::EXCLUSIVE,
-    ///     # plate::MemoryPropertyFlags::HOST_VISIBLE | plate::MemoryPropertyFlags::HOST_VISIBLE,
+    ///     # plate::MemoryPropertyFlags::HOST_VISIBLE | plate::MemoryPropertyFlags::HOST_COHERENT,
     /// # )?;
     /// // Create a MappedBuffer by mapping an existing Buffer
     /// let mapped = buffer.map()?;
@@ -226,7 +226,7 @@ impl<T> MappedBuffer<T> {
     ///     # 2,
     ///     # plate::BufferUsageFlags::UNIFORM_BUFFER,
     ///     # plate::SharingMode::EXCLUSIVE,
-    ///     # plate::MemoryPropertyFlags::HOST_VISIBLE | plate::MemoryPropertyFlags::HOST_VISIBLE,
+    ///     # plate::MemoryPropertyFlags::HOST_VISIBLE | plate::MemoryPropertyFlags::HOST_COHERENT,
     /// # )?;
     /// let data = [1, 2, 3];
     /// let mut mapped = buffer.map()?;
@@ -262,7 +262,7 @@ impl<T> MappedBuffer<T> {
     /// let buffer: plate::Buffer<u32> = plate::Buffer::new(&device, 4, // ..
     ///     # plate::BufferUsageFlags::UNIFORM_BUFFER,
     ///     # plate::SharingMode::EXCLUSIVE,
-    ///     # plate::MemoryPropertyFlags::HOST_VISIBLE | plate::MemoryPropertyFlags::HOST_VISIBLE,
+    ///     # plate::MemoryPropertyFlags::HOST_VISIBLE | plate::MemoryPropertyFlags::HOST_COHERENT,
     /// # )?;
     /// // Map an existing buffer created with capacity for 4 instances
     /// let mut mapped = buffer.map()?;
@@ -317,7 +317,7 @@ impl<T> Buffer<T> {
     ///     2,
     ///     plate::BufferUsageFlags::UNIFORM_BUFFER,
     ///     plate::SharingMode::EXCLUSIVE,
-    ///     plate::MemoryPropertyFlags::HOST_VISIBLE | plate::MemoryPropertyFlags::HOST_VISIBLE,
+    ///     plate::MemoryPropertyFlags::HOST_VISIBLE | plate::MemoryPropertyFlags::HOST_COHERENT,
     /// )?;
     /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// ```
@@ -372,7 +372,7 @@ impl<T> Buffer<T> {
     ///     # 2,
     ///     # plate::BufferUsageFlags::UNIFORM_BUFFER,
     ///     # plate::SharingMode::EXCLUSIVE,
-    ///     # plate::MemoryPropertyFlags::HOST_VISIBLE | plate::MemoryPropertyFlags::HOST_VISIBLE,
+    ///     # plate::MemoryPropertyFlags::HOST_VISIBLE | plate::MemoryPropertyFlags::HOST_COHERENT,
     /// # )?;
     /// let mapped = buffer.map()?;
     /// # Ok::<(), Box<dyn std::error::Error>>(())
