@@ -169,8 +169,11 @@ impl Instance {
         let instance_info = vk::InstanceCreateInfo::builder()
             .application_info(&app_info)
             .enabled_extension_names(extensions.as_slice())
-            .enabled_layer_names(layers.as_slice())
-            .push_next(&mut debug_messenger_info);
+            .enabled_layer_names(layers.as_slice());
+
+        let instance_info = if params.enable_validation_layers {
+            instance_info.push_next(&mut debug_messenger_info)
+        } else { instance_info };
 
         let instance = unsafe { entry.create_instance(&instance_info, None)? };
 
