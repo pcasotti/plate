@@ -60,7 +60,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         &plate::PipelineParameters {
             vertex_binding_descriptions: Vert::binding_descriptions(),
             vertex_attribute_descriptions: Vert::attribute_descriptions(),
-            descriptor_set_layout: &[&set_layout],
+            descriptor_set_layouts: &[&set_layout],
         },
     )?;
 

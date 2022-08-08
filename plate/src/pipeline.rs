@@ -84,7 +84,7 @@ pub struct PipelineParameters<'a> {
     /// AttributeDescriptions of the vertex to be used by the pipeline.
     pub vertex_attribute_descriptions: Vec<VertexAttributeDescription>,
     /// DescriptorSetLayouts to be used by the pipeline.
-    pub descriptor_set_layout: &'a [&'a DescriptorSetLayout],
+    pub descriptor_set_layouts: &'a [&'a DescriptorSetLayout],
 }
 
 impl<'a> Default for PipelineParameters<'_> {
@@ -92,7 +92,7 @@ impl<'a> Default for PipelineParameters<'_> {
         Self {
             vertex_binding_descriptions: vec![],
             vertex_attribute_descriptions: vec![],
-            descriptor_set_layout: &[],
+            descriptor_set_layouts: &[],
         }
     }
 }
@@ -229,7 +229,7 @@ impl Pipeline {
         let color_blend =
             vk::PipelineColorBlendStateCreateInfo::builder().attachments(&color_blend_attachments);
 
-        let layouts = params.descriptor_set_layout.into_iter()
+        let layouts = params.descriptor_set_layouts.into_iter()
             .map(|l| l.layout)
             .collect::<Vec<_>>();
         let layout_info = vk::PipelineLayoutCreateInfo::builder().set_layouts(&layouts);
