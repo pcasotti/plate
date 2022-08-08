@@ -1,8 +1,14 @@
-#![cfg_attr(docsrs, feature(doc_cfg))]
-#![doc = include_str!("../../README.md")]
-#![doc = "```no_run"]
-#![doc = include_str!("../../examples/triangle.rs")]
-#![doc = "```"]
+//! # plate
+//!
+//! Rust library for writing simpler Vulkan code
+//!
+//! ## Example
+//!
+//! Add the library to your Cargo.toml file:
+//! ```toml
+//! [dependencies]
+//! plate = "0.2.0"
+//! ```
 
 pub mod buffer;
 pub use buffer::*;
