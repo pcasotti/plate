@@ -136,11 +136,12 @@ impl Pipeline {
     /// # let surface = plate::Surface::new(&instance, &window)?;
     /// # let device = plate::Device::new(instance, surface, &Default::default())?;
     /// # let mut swapchain = plate::swapchain::Swapchain::new(&device, &window)?;
+    /// # let (vert_code, frag_code) = ([0], [0]);
     /// let pipeline = plate::pipeline::Pipeline::new(
     ///     &device,
     ///     &swapchain,
-    ///     vk_shader_macros::include_glsl!("shaders/triangle/shader.vert"),
-    ///     vk_shader_macros::include_glsl!("shaders/triangle/shader.frag"),
+    ///     &vert_code,
+    ///     &frag_code,
     ///     &Default::default(),
     /// )?;
     /// # Ok::<(), Box<dyn std::error::Error>>(())

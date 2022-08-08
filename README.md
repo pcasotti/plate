@@ -21,7 +21,7 @@ Rust library for writing simpler Vulkan code
 Add the library to your Cargo.toml file:
 ```toml
 [dependencies]
-plate = "0.2.0"
+plate = "0.2.1"
 ```
 
 Example code is available in the examples directory
