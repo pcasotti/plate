@@ -1,6 +1,6 @@
-#![doc = include_str!("../../README.md")]
+#![doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/../README.md"))]
 #![doc = "```no_run"]
-#![doc = include_str!("../../examples/triangle.rs")]
+#![doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/../examples/triangle.rs"))]
 #![doc = "```"]
 
 pub mod buffer;
