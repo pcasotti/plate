@@ -235,11 +235,7 @@ impl<T> MappedBuffer<T> {
     /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// ```
     pub fn write(&mut self, data: &[T]) {
-        assert!(data.len() <= self.buffer.instance_count);
-        unsafe {
-            data.as_ptr()
-                .copy_to_nonoverlapping(self.mapped as *mut _, data.len())
-        };
+        self.write_index(data, 0);
     }
 
     /// Writes data from a slice into a specific index from the mapped memory.
@@ -274,10 +270,15 @@ impl<T> MappedBuffer<T> {
     /// ```
     pub fn write_index(&mut self, data: &[T], index: usize) {
         assert!(data.len()+index <= self.buffer.instance_count);
-        unsafe {
-            data.as_ptr()
-                .copy_to_nonoverlapping((self.mapped as *mut T).offset(index as isize), data.len())
-        };
+
+        data.iter()
+            .enumerate()
+            .for_each(|(i, d)| {
+                unsafe {
+                    (d as *const T as *const u8)
+                        .copy_to_nonoverlapping((self.mapped as *mut u8).offset(((i+index) * self.buffer.alignment_size) as isize), self.buffer.alignment_size)
+                }
+            });
     }
 }
 
@@ -287,6 +288,7 @@ pub struct Buffer<T> {
     buffer: vk::Buffer,
     mem: vk::DeviceMemory,
     instance_count: usize,
+    alignment_size: usize,
 
     marker: marker::PhantomData<T>,
 }
@@ -328,7 +330,8 @@ impl<T> Buffer<T> {
         sharing_mode: SharingMode,
         memory_properties: MemoryPropertyFlags,
     ) -> Result<Self, Error> {
-        let size = mem::size_of::<T>() * instance_count;
+        let alignment_size = alignment::<T>(device, usage);
+        let size = alignment_size * instance_count;
 
         let buffer_info = vk::BufferCreateInfo::builder()
             .size(size as u64)
@@ -352,6 +355,7 @@ impl<T> Buffer<T> {
             buffer,
             mem,
             instance_count,
+            alignment_size,
 
             marker: marker::PhantomData,
         })
@@ -444,4 +448,18 @@ impl<T> Buffer<T> {
             .offset(0)
             .range((mem::size_of::<T>()*self.instance_count) as u64)
     }
+}
+
+fn alignment<T>(device: &Arc<Device>, usage: BufferUsageFlags) -> usize {
+    let limits = unsafe { device.instance.get_physical_device_properties(device.physical_device).limits };
+    let min_offset = if usage.contains(BufferUsageFlags::UNIFORM_BUFFER) {
+        limits.min_uniform_buffer_offset_alignment
+    } else if usage.contains(BufferUsageFlags::STORAGE_BUFFER) {
+        limits.min_storage_buffer_offset_alignment
+    } else { 1 } as usize;
+
+    let instance_size = mem::size_of::<T>();
+    if min_offset > 0 {
+        (instance_size + min_offset - 1) & !(min_offset - 1)
+    } else { instance_size }
 }
