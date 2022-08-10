@@ -215,15 +215,17 @@ impl DescriptorSetLayout {
     }
 }
 
-enum DescriptorInfo {
-    Buffer(vk::DescriptorBufferInfo),
-    Image(vk::DescriptorImageInfo),
-}
-
-struct WriteDescriptor {
-    binding: u32,
-    ty: DescriptorType,
-    descriptor_info: DescriptorInfo,
+enum WriteDescriptor {
+    Buffer {
+        binding: u32,
+        ty: DescriptorType,
+        info: [vk::DescriptorBufferInfo; 1],
+    },
+    Image {
+        binding: u32,
+        ty: DescriptorType,
+        info: [vk::DescriptorImageInfo; 1],
+    },
 }
 
 /// Struct used to allocate a [`DescriptorSet`].
@@ -280,11 +282,46 @@ impl DescriptorAllocator {
         ty: DescriptorType,
         buffer: &Buffer<T>,
     ) -> &mut Self {
-        let descriptor_info = DescriptorInfo::Buffer(buffer.descriptor_info());
-        let write = WriteDescriptor {
+        self.add_buffer_index_binding(binding, 0, buffer.instance_count, ty, buffer)
+    }
+
+    /// Binds a segment of a [`Buffer`] to a descriptor binding.
+    ///
+    /// Use the `index` as `instance_count` parameters to specify wich instances of the buffer to
+    /// bind.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # let event_loop = winit::event_loop::EventLoop::new();
+    /// # let window = winit::window::WindowBuilder::new().build(&event_loop)?;
+    /// # let instance = plate::Instance::new(Some(&window), &Default::default())?;
+    /// # let surface = plate::Surface::new(&instance, &window)?;
+    /// # let device = plate::Device::new(instance, surface, &Default::default())?;
+    /// # let buffer: plate::Buffer<u32> = plate::Buffer::new(
+    ///     # &device,
+    ///     # 1,
+    ///     # plate::BufferUsageFlags::UNIFORM_BUFFER,
+    ///     # plate::SharingMode::EXCLUSIVE,
+    ///     # plate::MemoryPropertyFlags::HOST_VISIBLE | plate::MemoryPropertyFlags::HOST_VISIBLE,
+    /// # )?;
+    /// let allocator = plate::DescriptorAllocator::new(&device)
+    ///     .add_buffer_index_binding(0, 0, 1, plate::DescriptorType::UNIFORM_BUFFER, &buffer);
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
+    /// ```
+    pub fn add_buffer_index_binding<T>(
+        &mut self,
+        binding: u32,
+        index: usize,
+        instance_count: usize,
+        ty: DescriptorType,
+        buffer: &Buffer<T>,
+    ) -> &mut Self {
+        let info = [buffer.descriptor_info(index, instance_count)];
+        let write = WriteDescriptor::Buffer {
             binding,
             ty,
-            descriptor_info,
+            info,
         };
         self.writes.push(write);
         self
@@ -314,11 +351,11 @@ impl DescriptorAllocator {
         image: &Image,
         sampler: &Sampler,
     ) -> &mut Self {
-        let descriptor_info = DescriptorInfo::Image(image.descriptor_info(sampler));
-        let write = WriteDescriptor {
+        let info = [image.descriptor_info(sampler)];
+        let write = WriteDescriptor::Image {
             binding,
             ty,
-            descriptor_info,
+            info,
         };
         self.writes.push(write);
         self
@@ -366,24 +403,22 @@ impl DescriptorAllocator {
         let writes = self
             .writes
             .iter_mut()
-            .map(|write| match write.descriptor_info {
-                DescriptorInfo::Buffer(info) => {
-                    let buffer_infos = [info];
+            .map(|write| match write {
+                WriteDescriptor::Buffer { binding, ty, info } => {
                     *vk::WriteDescriptorSet::builder()
                         .dst_set(set)
-                        .dst_binding(write.binding)
-                        .descriptor_type(write.ty)
+                        .dst_binding(*binding)
+                        .descriptor_type(*ty)
                         .dst_array_element(0)
-                        .buffer_info(&buffer_infos)
+                        .buffer_info(info)
                 }
-                DescriptorInfo::Image(info) => {
-                    let image_infos = [info];
+                WriteDescriptor::Image { binding, ty, info } => {
                     *vk::WriteDescriptorSet::builder()
                         .dst_set(set)
-                        .dst_binding(write.binding)
-                        .descriptor_type(write.ty)
+                        .dst_binding(*binding)
+                        .descriptor_type(*ty)
                         .dst_array_element(0)
-                        .image_info(&image_infos)
+                        .image_info(info)
                 }
             })
             .collect::<Vec<_>>();
