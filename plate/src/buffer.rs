@@ -240,7 +240,7 @@ impl<T> MappedBuffer<T> {
 
     /// Writes data from a slice into a specific index from the mapped memory.
     ///
-    /// The index added to the legth of the data provided must be within range of the
+    /// The index + the legth of the data provided must be within range of the
     /// `instance_count` para parameter provided during the mapepd Buffer creation.
     ///
     /// # Panics
@@ -276,9 +276,64 @@ impl<T> MappedBuffer<T> {
             .for_each(|(i, d)| {
                 unsafe {
                     (d as *const T as *const u8)
-                        .copy_to_nonoverlapping((self.mapped as *mut u8).offset(((i+index) * self.buffer.alignment_size) as isize), self.buffer.alignment_size)
+                        .copy_to_nonoverlapping((self.mapped as *mut u8).offset(((i+index) * self.buffer.alignment_size) as isize), mem::size_of::<T>())
                 }
             });
+    }
+
+    /// Flushes a this Buffer mapped memory.
+    ///
+    /// # Example
+    /// 
+    /// ```no_run
+    /// # let event_loop = winit::event_loop::EventLoop::new();
+    /// # let window = winit::window::WindowBuilder::new().build(&event_loop)?;
+    /// # let instance = plate::Instance::new(Some(&window), &Default::default())?;
+    /// # let surface = plate::Surface::new(&instance, &window)?;
+    /// # let device = plate::Device::new(instance, surface, &Default::default())?;
+    /// let buffer: plate::Buffer<u32> = plate::Buffer::new(&device, 4, // ..
+    ///     # plate::BufferUsageFlags::UNIFORM_BUFFER,
+    ///     # plate::SharingMode::EXCLUSIVE,
+    ///     # plate::MemoryPropertyFlags::HOST_VISIBLE | plate::MemoryPropertyFlags::HOST_COHERENT,
+    /// # )?;
+    /// let mut mapped = buffer.map()?;
+    /// mapped.flush()?;
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
+    /// ```
+    pub fn flush(&self) -> Result<(), Error> { self.flush_index(0, self.buffer.instance_count) }
+
+    /// Flushes a range of this Buffer mapped memory.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the offset + size is greater than the Buffer capacity.
+    ///
+    /// # Example
+    /// 
+    /// ```no_run
+    /// # let event_loop = winit::event_loop::EventLoop::new();
+    /// # let window = winit::window::WindowBuilder::new().build(&event_loop)?;
+    /// # let instance = plate::Instance::new(Some(&window), &Default::default())?;
+    /// # let surface = plate::Surface::new(&instance, &window)?;
+    /// # let device = plate::Device::new(instance, surface, &Default::default())?;
+    /// let buffer: plate::Buffer<u32> = plate::Buffer::new(&device, 4, // ..
+    ///     # plate::BufferUsageFlags::UNIFORM_BUFFER,
+    ///     # plate::SharingMode::EXCLUSIVE,
+    ///     # plate::MemoryPropertyFlags::HOST_VISIBLE | plate::MemoryPropertyFlags::HOST_COHERENT,
+    /// # )?;
+    /// let mut mapped = buffer.map()?;
+    /// mapped.flush_index(2, 1)?;
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
+    /// ```
+    pub fn flush_index(&self, offset: usize, size: usize) -> Result<(), Error> {
+        assert!(offset+size <= self.buffer.instance_count);
+
+        let range = vk::MappedMemoryRange::builder()
+            .memory(self.buffer.mem)
+            .offset((self.buffer.alignment_size * offset) as u64)
+            .size((self.buffer.alignment_size * size) as u64);
+
+        Ok(unsafe { self.buffer.device.flush_mapped_memory_ranges(&[*range])? })
     }
 }
 
@@ -287,7 +342,7 @@ pub struct Buffer<T> {
     device: Arc<Device>,
     buffer: vk::Buffer,
     mem: vk::DeviceMemory,
-    instance_count: usize,
+    pub(crate) instance_count: usize,
     alignment_size: usize,
 
     marker: marker::PhantomData<T>,
@@ -442,20 +497,20 @@ impl<T> Buffer<T> {
         Ok(unsafe { self.device.queue_wait_idle(self.device.graphics_queue.queue)? })
     }
 
-    pub(crate) fn descriptor_info(&self) -> vk::DescriptorBufferInfo {
+    pub(crate) fn descriptor_info(&self, offset: usize, range: usize) -> vk::DescriptorBufferInfo {
         *vk::DescriptorBufferInfo::builder()
             .buffer(self.buffer)
-            .offset(0)
-            .range((mem::size_of::<T>()*self.instance_count) as u64)
+            .offset((self.alignment_size * offset) as u64)
+            .range((self.alignment_size * range) as u64)
     }
 }
 
 fn alignment<T>(device: &Arc<Device>, usage: BufferUsageFlags) -> usize {
     let limits = unsafe { device.instance.get_physical_device_properties(device.physical_device).limits };
     let min_offset = if usage.contains(BufferUsageFlags::UNIFORM_BUFFER) {
-        limits.min_uniform_buffer_offset_alignment
+        limits.min_uniform_buffer_offset_alignment.max(limits.non_coherent_atom_size)
     } else if usage.contains(BufferUsageFlags::STORAGE_BUFFER) {
-        limits.min_storage_buffer_offset_alignment
+        limits.min_storage_buffer_offset_alignment.max(limits.non_coherent_atom_size)
     } else { 1 } as usize;
 
     let instance_size = mem::size_of::<T>();
