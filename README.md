@@ -33,5 +33,7 @@ Example code is available in the examples directory
 - Easy initialization.
 - Easy to use index and vertex buffers.
 - Simple buffer creation and manipulation of data.
+- Automatic buffer padding to device limits.
 - Simple image creation.
 - Ergonomic descriptor creation.
+- Dynamic descriptor support.
