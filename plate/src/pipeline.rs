@@ -216,8 +216,8 @@ impl Pipeline {
 
         let rasterization = vk::PipelineRasterizationStateCreateInfo::builder()
             .line_width(1.0)
-            .front_face(vk::FrontFace::COUNTER_CLOCKWISE)
-            .cull_mode(vk::CullModeFlags::NONE)
+            .front_face(params.front_face)
+            .cull_mode(params.cull_mode)
             .polygon_mode(vk::PolygonMode::FILL);
 
         let multisampling = vk::PipelineMultisampleStateCreateInfo::builder()
