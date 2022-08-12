@@ -78,7 +78,7 @@ impl Swapchain {
     /// Begins the Swapchain render pass.
     ///
     /// To be used when recording a CommandBuffer. Any call do a draw command in between this and a
-    /// call to [`end_render_pass\(\)`] will draw to this swapchain render pass.
+    /// call to [`end_render_pass()`](Self::end_render_pass()) will draw to this swapchain render pass.
     ///
     /// # Examples
     /// 
@@ -134,7 +134,8 @@ impl Swapchain {
 
     /// Ends the Swapchain render pass.
     ///
-    /// To be used when recording a CommandBuffer after calling [`begin_render_pass\(\)`] and the
+    /// To be used when recording a CommandBuffer after calling
+    /// [`begin_render_pass()`](Self::begin_render_pass()) and the
     /// desired draw commands.
     ///
     /// # Examples
