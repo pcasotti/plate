@@ -509,8 +509,6 @@ fn alignment<T>(device: &Arc<Device>, usage: BufferUsageFlags) -> usize {
     let limits = unsafe { device.instance.get_physical_device_properties(device.physical_device).limits };
     let min_offset = if usage.contains(BufferUsageFlags::UNIFORM_BUFFER) {
         limits.min_uniform_buffer_offset_alignment.max(limits.non_coherent_atom_size)
-    } else if usage.contains(BufferUsageFlags::STORAGE_BUFFER) {
-        limits.min_storage_buffer_offset_alignment.max(limits.non_coherent_atom_size)
     } else { 1 } as usize;
 
     let instance_size = mem::size_of::<T>();
