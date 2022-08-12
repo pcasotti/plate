@@ -5,6 +5,8 @@ use ash::vk;
 use crate::{DescriptorSetLayout, Device, Swapchain, Format, Error, CommandBuffer};
 
 pub use vk::VertexInputRate as InputRate;
+pub use vk::FrontFace;
+pub use vk::CullModeFlags;
 
 /// Vertex binding information.
 ///
@@ -77,7 +79,7 @@ pub trait VertexDescription {
     fn attribute_descriptions() -> Vec<VertexAttributeDescription>;
 }
 
-/// Vertex and descriptor information for [`Pipeline`] creation.
+/// Aditional parameters for [`Pipeline`] creation.
 pub struct PipelineParameters<'a> {
     /// BindingDescriptions of the vertex to be used by the pipeline.
     pub vertex_binding_descriptions: Vec<VertexBindingDescription>,
@@ -85,6 +87,10 @@ pub struct PipelineParameters<'a> {
     pub vertex_attribute_descriptions: Vec<VertexAttributeDescription>,
     /// DescriptorSetLayouts to be used by the pipeline.
     pub descriptor_set_layouts: &'a [&'a DescriptorSetLayout],
+    /// Direction of the vertices to consider front-facing.
+    pub front_face: FrontFace,
+    /// The orientation of triangles to cull.
+    pub cull_mode: CullModeFlags,
 }
 
 impl<'a> Default for PipelineParameters<'_> {
@@ -93,6 +99,8 @@ impl<'a> Default for PipelineParameters<'_> {
             vertex_binding_descriptions: vec![],
             vertex_attribute_descriptions: vec![],
             descriptor_set_layouts: &[],
+            front_face: FrontFace::COUNTER_CLOCKWISE,
+            cull_mode: CullModeFlags::NONE,
         }
     }
 }
