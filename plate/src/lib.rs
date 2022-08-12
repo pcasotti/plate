@@ -2,7 +2,7 @@
 //!
 //! Rust library for writing simpler Vulkan code
 //!
-//! ## Example
+//! ## Instalation
 //!
 //! Add the library to your Cargo.toml file:
 //! ```toml

@@ -16,7 +16,7 @@ Rust library for writing simpler Vulkan code
 [license-badge]: https://img.shields.io/crates/l/plate
 [license-url]: https://github.com/pcasotti/plate/blob/main/LICENSE
 
-## Example
+## Instalation
 
 Add the library to your Cargo.toml file:
 ```toml
@@ -24,4 +24,14 @@ Add the library to your Cargo.toml file:
 plate = "0.2.1"
 ```
 
+## Example
+
 Example code is available in the examples directory
+
+## Features
+
+- Easy initialization.
+- Easy to use index and vertex buffers.
+- Simple buffer creation and manipulation of data.
+- Simple image creation.
+- Ergonomic descriptor creation.
