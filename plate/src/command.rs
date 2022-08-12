@@ -125,7 +125,9 @@ impl Drop for CommandBuffer {
 }
 
 impl CommandBuffer {
-    /// Records instructions to this command buffer.
+    /// Records instructions in the given closure to this command buffer.
+    ///
+    /// Runs [`begin()`](Self::begin()), the closure then [`end()`](Self::end()).
     ///
     /// # Examples
     ///
@@ -149,7 +151,23 @@ impl CommandBuffer {
         Ok(())
     }
 
-    fn begin(&self, flags: CommandBufferUsageFlags) -> Result<(), Error> {
+    /// Begin recording instructions to this command buffer.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # let event_loop = winit::event_loop::EventLoop::new();
+    /// # let window = winit::window::WindowBuilder::new().build(&event_loop)?;
+    /// # let instance = plate::Instance::new(Some(&window), &Default::default())?;
+    /// # let surface = plate::Surface::new(&instance, &window)?;
+    /// # let device = plate::Device::new(instance, surface, &Default::default())?;
+    /// # let cmd_pool = plate::CommandPool::new(&device)?;
+    /// # let cmd_buffer = cmd_pool.alloc_cmd_buffer(plate::CommandBufferLevel::PRIMARY)?;
+    /// cmd_buffer.begin(plate::CommandBufferUsageFlags::empty())?;
+    /// // cmd_buffer.draw(..);
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
+    /// ```
+    pub fn begin(&self, flags: CommandBufferUsageFlags) -> Result<(), Error> {
         let info = vk::CommandBufferBeginInfo::builder().flags(flags);
         unsafe {
             self.device.reset_command_buffer(self.cmd_buffer, vk::CommandBufferResetFlags::empty())?;
@@ -158,7 +176,23 @@ impl CommandBuffer {
         Ok(())
     }
 
-    fn end(&self) -> Result<(), Error> {
+    /// Stop recording instructions to this command buffer.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # let event_loop = winit::event_loop::EventLoop::new();
+    /// # let window = winit::window::WindowBuilder::new().build(&event_loop)?;
+    /// # let instance = plate::Instance::new(Some(&window), &Default::default())?;
+    /// # let surface = plate::Surface::new(&instance, &window)?;
+    /// # let device = plate::Device::new(instance, surface, &Default::default())?;
+    /// # let cmd_pool = plate::CommandPool::new(&device)?;
+    /// # let cmd_buffer = cmd_pool.alloc_cmd_buffer(plate::CommandBufferLevel::PRIMARY)?;
+    /// // cmd_buffer.draw(..);
+    /// cmd_buffer.end()?;
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
+    /// ```
+    pub fn end(&self) -> Result<(), Error> {
         unsafe { self.device.end_command_buffer(self.cmd_buffer)? };
         Ok(())
     }
