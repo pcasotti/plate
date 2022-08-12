@@ -167,7 +167,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     pipeline.bind(&cmd_buffer, &swapchain);
                     vert_buffer.bind(&cmd_buffer);
                     index_buffer.bind(&cmd_buffer);
-                    descriptor_set.bind(&cmd_buffer, &pipeline, &[]).unwrap();
+                    descriptor_set.bind(&cmd_buffer, &pipeline, 0, &[]).unwrap();
 
                     cmd_buffer.draw_indexed(indices.len() as u32, 1, 0, 0, 0);
                     swapchain.end_render_pass(&cmd_buffer);

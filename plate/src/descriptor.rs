@@ -486,11 +486,11 @@ impl DescriptorSet {
     /// let descriptor_set = plate::DescriptorAllocator::new(&device).allocate(&layout, &pool)?;
     /// // cmd_buffer.record(.., || {
     ///     // pipeline.bind(..);
-    ///     descriptor_set.bind(&cmd_buffer, &pipeline, &[]);
+    ///     descriptor_set.bind(&cmd_buffer, &pipeline, 0, &[]);
     /// // })?;
     /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// ```
-    pub fn bind(&self, cmd_buffer: &CommandBuffer, pipeline: &Pipeline, dynamic_offsets: &[u32]) -> Result<(), Error> {
+    pub fn bind(&self, cmd_buffer: &CommandBuffer, pipeline: &Pipeline, first_set: u32, dynamic_offsets: &[u32]) -> Result<(), Error> {
         if dynamic_offsets.len() != self.dynamic_sizes.len() {
             return Err(DescriptorError::DynamicOffsetOutOfBounds { actual: dynamic_offsets.len(), expected: self.dynamic_sizes.len() }.into())
         }
@@ -505,7 +505,7 @@ impl DescriptorSet {
                 **cmd_buffer,
                 vk::PipelineBindPoint::GRAPHICS,
                 pipeline.layout,
-                0,
+                first_set,
                 &[self.set],
                 &dynamic_offsets,
             )
