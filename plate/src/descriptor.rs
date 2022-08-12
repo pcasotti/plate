@@ -7,6 +7,17 @@ use crate::{image::*, Buffer, CommandBuffer, Device, Error, Pipeline};
 pub use vk::DescriptorType;
 pub use vk::ShaderStageFlags as ShaderStage;
 
+/// Errors from the descriptor module.
+#[derive(thiserror::Error, Debug)]
+pub enum DescriptorError {
+    /// The number of provided dynamic offsets is not equal the number of bound dynamic descriptors.
+    #[error("The number of provided dynamic offsets is not equal the number of bound dynamic descriptors. Provided {actual} dynamic offsets, but expected {expected}")]
+    DynamicOffsetOutOfBounds {
+        actual: usize,
+        expected: usize,
+    },
+}
+
 /// A Component for building a descriptor pool.
 ///
 /// Describes the amount of descriptors that can be allocated of a certain type.
@@ -220,6 +231,7 @@ enum WriteDescriptor {
         binding: u32,
         ty: DescriptorType,
         info: [vk::DescriptorBufferInfo; 1],
+        alignment: usize,
     },
     Image {
         binding: u32,
@@ -287,7 +299,7 @@ impl DescriptorAllocator {
 
     /// Binds a segment of a [`Buffer`] to a descriptor binding.
     ///
-    /// Use the `index` as `instance_count` parameters to specify wich instances of the buffer to
+    /// Use the `index` and `instance_count` parameters to specify wich instances of the buffer to
     /// bind.
     ///
     /// # Examples
@@ -322,6 +334,7 @@ impl DescriptorAllocator {
             binding,
             ty,
             info,
+            alignment: buffer.alignment_size,
         };
         self.writes.push(write);
         self
@@ -400,11 +413,17 @@ impl DescriptorAllocator {
             .set_layouts(&layouts);
 
         let set = unsafe { self.device.allocate_descriptor_sets(&alloc_info)?[0] };
+
+        let mut dynamic_sizes = vec![];
+
         let writes = self
             .writes
             .iter_mut()
             .map(|write| match write {
-                WriteDescriptor::Buffer { binding, ty, info } => {
+                WriteDescriptor::Buffer { binding, ty, info, alignment } => {
+                    if (*ty == DescriptorType::UNIFORM_BUFFER_DYNAMIC) || (*ty == DescriptorType::STORAGE_BUFFER_DYNAMIC) {
+                        dynamic_sizes.push(*alignment as u32);
+                    }
                     *vk::WriteDescriptorSet::builder()
                         .dst_set(set)
                         .dst_binding(*binding)
@@ -428,6 +447,7 @@ impl DescriptorAllocator {
         Ok(DescriptorSet {
             device: Arc::clone(&self.device),
             set,
+            dynamic_sizes,
         })
     }
 }
@@ -436,6 +456,7 @@ impl DescriptorAllocator {
 pub struct DescriptorSet {
     device: Arc<Device>,
     set: vk::DescriptorSet,
+    dynamic_sizes: Vec<u32>,
 }
 
 impl DescriptorSet {
@@ -443,6 +464,8 @@ impl DescriptorSet {
     /// 
     /// To be used when recording a command buffer, should be used after binding the pipeline. The
     /// pipeline should be created with the same [`DescriptorSetLayout`] as this DescriptorSet.
+    /// `dynamic_offsets` must have the same length as the number of dynamic descriptors in this
+    /// set.
     /// 
     /// # Examples
     /// 
@@ -463,20 +486,31 @@ impl DescriptorSet {
     /// let descriptor_set = plate::DescriptorAllocator::new(&device).allocate(&layout, &pool)?;
     /// // cmd_buffer.record(.., || {
     ///     // pipeline.bind(..);
-    ///     descriptor_set.bind(&cmd_buffer, &pipeline);
+    ///     descriptor_set.bind(&cmd_buffer, &pipeline, &[]);
     /// // })?;
     /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// ```
-    pub fn bind(&self, cmd_buffer: &CommandBuffer, pipeline: &Pipeline) {
+    pub fn bind(&self, cmd_buffer: &CommandBuffer, pipeline: &Pipeline, dynamic_offsets: &[u32]) -> Result<(), Error> {
+        if dynamic_offsets.len() != self.dynamic_sizes.len() {
+            return Err(DescriptorError::DynamicOffsetOutOfBounds { actual: dynamic_offsets.len(), expected: self.dynamic_sizes.len() }.into())
+        }
+
+        let dynamic_offsets = self.dynamic_sizes.iter()
+            .enumerate()
+            .map(|(i, s)| s * dynamic_offsets[i])
+            .collect::<Vec<_>>();
+
         unsafe {
             self.device.cmd_bind_descriptor_sets(
                 **cmd_buffer,
-                ash::vk::PipelineBindPoint::GRAPHICS,
+                vk::PipelineBindPoint::GRAPHICS,
                 pipeline.layout,
                 0,
                 &[self.set],
-                &[],
+                &dynamic_offsets,
             )
         };
+
+        Ok(())
     }
 }

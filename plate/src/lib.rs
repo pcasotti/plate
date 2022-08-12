@@ -46,6 +46,8 @@ pub enum Error {
     SwapchainError(#[from] SwapchainError),
     #[error("{0}")]
     InstanceError(#[from] InstanceError),
+    #[error("{0}")]
+    DescriptorError(#[from] DescriptorError),
 }
 
 #[cfg(feature = "macros")]

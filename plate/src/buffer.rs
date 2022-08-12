@@ -343,7 +343,7 @@ pub struct Buffer<T> {
     buffer: vk::Buffer,
     mem: vk::DeviceMemory,
     pub(crate) instance_count: usize,
-    alignment_size: usize,
+    pub(crate) alignment_size: usize,
 
     marker: marker::PhantomData<T>,
 }
