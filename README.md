@@ -26,7 +26,12 @@ plate = "0.3.0"
 
 ## Example
 
-Example code is available in the examples directory
+Example code is available in the examples directory.
+
+Use cargo to run the examples:
+```shell
+cargo run --example triangle
+```
 
 ## Features
 
