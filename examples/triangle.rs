@@ -8,7 +8,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut swapchain = plate::swapchain::Swapchain::new(&device, &window)?;
     let pipeline = plate::pipeline::Pipeline::new(
         &device,
-        &swapchain,
+        swapchain.render_pass(),
         vk_shader_macros::include_glsl!("shaders/triangle/shader.vert"),
         vk_shader_macros::include_glsl!("shaders/triangle/shader.frag"),
         &Default::default(),
@@ -43,7 +43,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
                 cmd_buffer.record(plate::CommandBufferUsageFlags::empty(), || {
                     swapchain.begin_render_pass(&cmd_buffer, i.try_into().unwrap());
-                    pipeline.bind(&cmd_buffer, &swapchain);
+                    pipeline.bind(&cmd_buffer, swapchain.extent());
                     cmd_buffer.draw(3, 1, 0, 0);
                     swapchain.end_render_pass(&cmd_buffer);
                 }).unwrap();

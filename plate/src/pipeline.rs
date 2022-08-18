@@ -2,7 +2,7 @@ use std::{ffi, sync::Arc};
 
 use ash::vk;
 
-use crate::{DescriptorSetLayout, Device, Swapchain, Format, Error, CommandBuffer};
+use crate::{DescriptorSetLayout, Device, Format, Error, CommandBuffer, RenderPass};
 
 pub use vk::VertexInputRate as InputRate;
 pub use vk::FrontFace;
@@ -147,7 +147,7 @@ impl Pipeline {
     /// # let (vert_code, frag_code) = ([0], [0]);
     /// let pipeline = plate::pipeline::Pipeline::new(
     ///     &device,
-    ///     &swapchain,
+    ///     &swapchain.render_pass(),
     ///     &vert_code,
     ///     &frag_code,
     ///     &Default::default(),
@@ -156,7 +156,7 @@ impl Pipeline {
     /// ```
     pub fn new(
         device: &Arc<Device>,
-        swapchain: &Swapchain,
+        render_pass: &RenderPass,
         vert_code: &[u32],
         frag_code: &[u32],
         params: &PipelineParameters,
@@ -264,7 +264,7 @@ impl Pipeline {
             .multisample_state(&multisampling)
             .color_blend_state(&color_blend)
             .layout(layout)
-            .render_pass(swapchain.0.render_pass)
+            .render_pass(render_pass.render_pass)
             .dynamic_state(&dynamic_state)
             .subpass(0)
             .depth_stencil_state(&stencil_state);
@@ -299,14 +299,14 @@ impl Pipeline {
     /// # let cmd_pool = plate::CommandPool::new(&device)?;
     /// # let cmd_buffer = cmd_pool.alloc_cmd_buffer(plate::CommandBufferLevel::PRIMARY)?;
     /// # let swapchain = plate::swapchain::Swapchain::new(&device, &window)?;
-    /// # let pipeline = plate::pipeline::Pipeline::new(&device, &swapchain, &[], &[],
+    /// # let pipeline = plate::pipeline::Pipeline::new(&device, &swapchain.render_pass(), &[], &[],
     /// # &Default::default())?;
     /// // cmd_buffer.record(.., || {
-    ///     pipeline.bind(&cmd_buffer, &swapchain);
+    ///     pipeline.bind(&cmd_buffer, swapchain.extent());
     /// // })?;
     /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// ```
-    pub fn bind(&self, command_buffer: &CommandBuffer, swapchain: &Swapchain) {
+    pub fn bind(&self, command_buffer: &CommandBuffer, extent: (u32, u32)) {
         unsafe {
             self.device.cmd_bind_pipeline(**command_buffer, vk::PipelineBindPoint::GRAPHICS, self.pipeline)
         }
@@ -314,8 +314,8 @@ impl Pipeline {
         let viewports = [vk::Viewport {
             x: 0.0,
             y: 0.0,
-            width: swapchain.0.extent.width as f32,
-            height: swapchain.0.extent.height as f32,
+            width: extent.0 as f32,
+            height: extent.1 as f32,
             min_depth: 0.0,
             max_depth: 1.0,
         }];
@@ -323,7 +323,7 @@ impl Pipeline {
 
         let scissors = [vk::Rect2D {
             offset: vk::Offset2D { x: 0, y: 0 },
-            extent: swapchain.0.extent,
+            extent: vk::Extent2D { width: extent.0, height: extent.1 },
         }];
         unsafe { self.device.cmd_set_scissor(**command_buffer, 0, &scissors) };
     }

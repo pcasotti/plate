@@ -54,7 +54,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     )?;
     let pipeline = plate::pipeline::Pipeline::new(
         &device,
-        &swapchain,
+        swapchain.render_pass(),
         vk_shader_macros::include_glsl!("shaders/texture/shader.vert"),
         vk_shader_macros::include_glsl!("shaders/texture/shader.frag"),
         &plate::PipelineParameters {
@@ -108,7 +108,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let descriptor_set = plate::DescriptorAllocator::new(&device)
         .add_buffer_binding(0, plate::DescriptorType::UNIFORM_BUFFER, &ubo)
-        .add_image_binding(1, plate::DescriptorType::COMBINED_IMAGE_SAMPLER, &image, &sampler)
+        .add_image_binding(1, plate::DescriptorType::COMBINED_IMAGE_SAMPLER, &image, &sampler, plate::ImageLayout::SHADER_READ_ONLY_OPTIMAL)
         .allocate(&set_layout, &descriptor_pool)?;
 
     let mut ubo = ubo.map()?;
@@ -145,7 +145,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 cmd_buffer.record(plate::CommandBufferUsageFlags::empty(), || {
                     swapchain.begin_render_pass(&cmd_buffer, i.try_into().unwrap());
 
-                    pipeline.bind(&cmd_buffer, &swapchain);
+                    pipeline.bind(&cmd_buffer, swapchain.extent());
                     vert_buffer.bind(&cmd_buffer);
                     index_buffer.bind(&cmd_buffer);
                     descriptor_set.bind(&cmd_buffer, &pipeline, 0, &[]).unwrap();

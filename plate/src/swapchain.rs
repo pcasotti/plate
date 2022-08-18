@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use ash::{extensions::khr, vk};
 
-use crate::{Device, sync::*, image::*, Error, CommandBuffer};
+use crate::{Device, sync::*, image::*, Error, CommandBuffer, Format, rendering::*, PipelineStage};
 
 /// Errors from the swapchain module.
 #[derive(thiserror::Error, Debug)]
@@ -100,36 +100,7 @@ impl Swapchain {
     /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// ```
     pub fn begin_render_pass(&self, command_buffer: &CommandBuffer, image_index: usize) {
-        let clear_values = [
-            vk::ClearValue {
-                color: vk::ClearColorValue {
-                    float32: [0.0, 0.0, 0.0, 1.0],
-                },
-            },
-            vk::ClearValue {
-                depth_stencil: vk::ClearDepthStencilValue {
-                    depth: 1.0,
-                    stencil: 0,
-                }
-            }
-        ];
-
-        let begin_info = vk::RenderPassBeginInfo::builder()
-            .render_pass(self.0.render_pass)
-            .framebuffer(self.0.framebuffers[image_index])
-            .render_area(vk::Rect2D {
-                offset: vk::Offset2D { x: 0, y: 0 },
-                extent: self.0.extent,
-            })
-            .clear_values(&clear_values);
-
-        unsafe {
-            self.0.device.cmd_begin_render_pass(
-                **command_buffer,
-                &begin_info,
-                vk::SubpassContents::INLINE,
-            )
-        }
+        self.0.render_pass.begin(command_buffer, &self.0.framebuffers[image_index])
     }
 
     /// Ends the Swapchain render pass.
@@ -157,7 +128,7 @@ impl Swapchain {
     /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// ```
     pub fn end_render_pass(&self, command_buffer: &CommandBuffer) {
-        unsafe { self.0.device.cmd_end_render_pass(**command_buffer) }
+        self.0.render_pass.end(command_buffer)
     }
 
     /// Acquires the next available swapchain image.
@@ -219,6 +190,82 @@ impl Swapchain {
 
         Ok(unsafe { self.0.swapchain_loader.queue_present(self.0.device.present_queue.queue, &present_info)? })
     }
+
+    /// Returns the depth image format.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # let event_loop = winit::event_loop::EventLoop::new();
+    /// # let window = winit::window::WindowBuilder::new().build(&event_loop)?;
+    /// # let instance = plate::Instance::new(Some(&window), &Default::default())?;
+    /// # let surface = plate::Surface::new(&instance, &window)?;
+    /// # let device = plate::Device::new(instance, surface, &Default::default())?;
+    /// # let mut swapchain = plate::swapchain::Swapchain::new(&device, &window)?;
+    /// # let present_sem = plate::Semaphore::new(&device, plate::SemaphoreFlags::empty())?;
+    /// let depth_format = swapchain.depth_format();
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
+    /// ```
+    pub fn depth_format(&self) -> Format {
+        self.0.depth_format
+    }
+
+    /// Returns the color image format.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # let event_loop = winit::event_loop::EventLoop::new();
+    /// # let window = winit::window::WindowBuilder::new().build(&event_loop)?;
+    /// # let instance = plate::Instance::new(Some(&window), &Default::default())?;
+    /// # let surface = plate::Surface::new(&instance, &window)?;
+    /// # let device = plate::Device::new(instance, surface, &Default::default())?;
+    /// # let mut swapchain = plate::swapchain::Swapchain::new(&device, &window)?;
+    /// # let present_sem = plate::Semaphore::new(&device, plate::SemaphoreFlags::empty())?;
+    /// let format = swapchain.image_format();
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
+    /// ```
+    pub fn image_format(&self) -> Format {
+        self.0.image_format
+    }
+
+    /// Returns the swapchain extent.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # let event_loop = winit::event_loop::EventLoop::new();
+    /// # let window = winit::window::WindowBuilder::new().build(&event_loop)?;
+    /// # let instance = plate::Instance::new(Some(&window), &Default::default())?;
+    /// # let surface = plate::Surface::new(&instance, &window)?;
+    /// # let device = plate::Device::new(instance, surface, &Default::default())?;
+    /// # let mut swapchain = plate::swapchain::Swapchain::new(&device, &window)?;
+    /// # let present_sem = plate::Semaphore::new(&device, plate::SemaphoreFlags::empty())?;
+    /// let format = swapchain.image_format();
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
+    /// ```
+    pub fn extent(&self) -> (u32, u32) {
+        (self.0.extent.width, self.0.extent.height)
+    }
+
+    /// Returns the swapchain RenderPass.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # let event_loop = winit::event_loop::EventLoop::new();
+    /// # let window = winit::window::WindowBuilder::new().build(&event_loop)?;
+    /// # let instance = plate::Instance::new(Some(&window), &Default::default())?;
+    /// # let surface = plate::Surface::new(&instance, &window)?;
+    /// # let device = plate::Device::new(instance, surface, &Default::default())?;
+    /// # let mut swapchain = plate::swapchain::Swapchain::new(&device, &window)?;
+    /// # let present_sem = plate::Semaphore::new(&device, plate::SemaphoreFlags::empty())?;
+    /// let render_pass = swapchain.render_pass();
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
+    /// ```
+    pub fn render_pass(&self) -> &RenderPass {
+        &self.0.render_pass
+    }
 }
 
 pub(crate) struct Swap {
@@ -232,20 +279,19 @@ pub(crate) struct Swap {
     #[allow(dead_code)]
     images: Vec<vk::Image>,
     image_views: Vec<vk::ImageView>,
+    image_format: Format,
 
     #[allow(dead_code)]
     depth_image: Image,
+    depth_format: Format,
 
-    pub render_pass: vk::RenderPass,
-    framebuffers: Vec<vk::Framebuffer>,
+    pub render_pass: RenderPass,
+    framebuffers: Vec<Framebuffer>,
 }
 
 impl Drop for Swap {
     fn drop(&mut self) {
         unsafe {
-            self.framebuffers.iter().for_each(|framebuffer| {
-                self.device.destroy_framebuffer(*framebuffer, None)
-            });
             self.image_views
                 .iter()
                 .for_each(|view| self.device.destroy_image_view(*view, None));
@@ -395,68 +441,42 @@ impl Swap {
             ImageAspectFlags::DEPTH,
         )?;
 
+        let color_attachment = Attachment {
+            format: image_format.format,
+            load_op: AttachmentLoadOp::CLEAR,
+            store_op: AttachmentStoreOp::STORE,
+            initial_layout: ImageLayout::UNDEFINED,
+            final_layout: ImageLayout::PRESENT_SRC_KHR,
+        };
+        let depth_attachment = Attachment {
+            format: depth_format,
+            load_op: AttachmentLoadOp::CLEAR,
+            store_op: AttachmentStoreOp::STORE,
+            initial_layout: ImageLayout::UNDEFINED,
+            final_layout: ImageLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+        };
 
-        let color_attachment = vk::AttachmentDescription::builder()
-            .format(image_format.format)
-            .samples(vk::SampleCountFlags::TYPE_1)
-            .load_op(vk::AttachmentLoadOp::CLEAR)
-            .store_op(vk::AttachmentStoreOp::STORE)
-            .stencil_load_op(vk::AttachmentLoadOp::DONT_CARE)
-            .stencil_store_op(vk::AttachmentStoreOp::DONT_CARE)
-            .initial_layout(vk::ImageLayout::UNDEFINED)
-            .final_layout(vk::ImageLayout::PRESENT_SRC_KHR);
+        let subpass = SubpassDescription {
+            color_attachments: vec![AttachmentReference { attachment: 0, layout: ImageLayout::COLOR_ATTACHMENT_OPTIMAL }],
+            depth_attachment: Some(AttachmentReference { attachment: 1, layout: ImageLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL }),
+            ..Default::default()
+        };
 
-        let depth_attachment = vk::AttachmentDescription::builder()
-            .format(depth_format)
-            .samples(vk::SampleCountFlags::TYPE_1)
-            .load_op(vk::AttachmentLoadOp::CLEAR)
-            .store_op(vk::AttachmentStoreOp::DONT_CARE)
-            .stencil_load_op(vk::AttachmentLoadOp::DONT_CARE)
-            .stencil_store_op(vk::AttachmentStoreOp::DONT_CARE)
-            .initial_layout(vk::ImageLayout::UNDEFINED)
-            .final_layout(vk::ImageLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+        let dependency = SubpassDependency {
+            src_subpass: Subpass::EXTERNAL,
+            dst_subpass: Subpass(0),
+            src_stage_mask: PipelineStage::COLOR_ATTACHMENT_OUTPUT | PipelineStage::EARLY_FRAGMENT_TESTS,
+            dst_stage_mask: PipelineStage::COLOR_ATTACHMENT_OUTPUT | PipelineStage::EARLY_FRAGMENT_TESTS,
+            src_access_mask: AccessFlags::NONE,
+            dst_access_mask: AccessFlags::COLOR_ATTACHMENT_WRITE | AccessFlags::DEPTH_STENCIL_ATTACHMENT_WRITE,
+        };
 
-        let color_attachment_refs = [*vk::AttachmentReference::builder()
-                .attachment(0)
-                .layout(vk::ImageLayout::COLOR_ATTACHMENT_OPTIMAL)];
-        let depth_attachment_ref = vk::AttachmentReference::builder()
-            .attachment(1)
-            .layout(vk::ImageLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
-
-        let subpasses = [*vk::SubpassDescription::builder()
-            .pipeline_bind_point(vk::PipelineBindPoint::GRAPHICS)
-            .color_attachments(&color_attachment_refs)
-            .depth_stencil_attachment(&depth_attachment_ref)];
-
-        let attachments = [*color_attachment, *depth_attachment];
-
-        let dependencies = [*vk::SubpassDependency::builder()
-            .src_subpass(vk::SUBPASS_EXTERNAL)
-            .dst_subpass(0)
-            .src_stage_mask(vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT | vk::PipelineStageFlags::EARLY_FRAGMENT_TESTS)
-            .src_access_mask(vk::AccessFlags::NONE)
-            .dst_stage_mask(vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT | vk::PipelineStageFlags::EARLY_FRAGMENT_TESTS)
-            .dst_access_mask(vk::AccessFlags::COLOR_ATTACHMENT_WRITE | vk::AccessFlags::DEPTH_STENCIL_ATTACHMENT_WRITE)];
-
-        let render_pass_info = vk::RenderPassCreateInfo::builder()
-            .attachments(&attachments)
-            .subpasses(&subpasses)
-            .dependencies(&dependencies);
-
-        let render_pass = unsafe { device.create_render_pass(&render_pass_info, None)? };
+        let render_pass = RenderPass::new(device, &[color_attachment, depth_attachment], &[subpass], &[dependency])?;
 
         let framebuffers = image_views
             .iter()
             .map(|view| {
-                let attachments = [*view, depth_image.view];
-                let framebuffer_info = vk::FramebufferCreateInfo::builder()
-                    .render_pass(render_pass)
-                    .attachments(&attachments)
-                    .width(extent.width)
-                    .height(extent.height)
-                    .layers(1);
-
-                unsafe { device.create_framebuffer(&framebuffer_info, None) }
+                Framebuffer::from_image_views(device, &render_pass, &[*view, depth_image.view], extent.width, extent.height)
             })
             .collect::<Result<_, _>>()?;
 
@@ -467,7 +487,9 @@ impl Swap {
             extent,
             images,
             image_views,
+            image_format: image_format.format,
             depth_image,
+            depth_format,
             render_pass,
             framebuffers,
         })

@@ -46,7 +46,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     )?;
     let pipeline = plate::pipeline::Pipeline::new(
         &device,
-        &swapchain,
+        swapchain.render_pass(),
         vk_shader_macros::include_glsl!("shaders/uniform_buffer/shader.vert"),
         vk_shader_macros::include_glsl!("shaders/uniform_buffer/shader.frag"),
         &plate::PipelineParameters {
@@ -126,7 +126,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 cmd_buffer.record(plate::CommandBufferUsageFlags::empty(), || {
                     swapchain.begin_render_pass(&cmd_buffer, i.try_into().unwrap());
 
-                    pipeline.bind(&cmd_buffer, &swapchain);
+                    pipeline.bind(&cmd_buffer, swapchain.extent());
                     vert_buffer.bind(&cmd_buffer);
                     index_buffer.bind(&cmd_buffer);
                     descriptor_set.bind(&cmd_buffer, &pipeline, 0, &[]).unwrap();
