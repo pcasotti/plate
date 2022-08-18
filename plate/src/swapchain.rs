@@ -248,7 +248,7 @@ impl Swapchain {
         (self.0.extent.width, self.0.extent.height)
     }
 
-    /// Returns the swapchain RenderPass.
+    /// Returns the swapchain [`RenderPass`].
     ///
     /// # Examples
     ///
