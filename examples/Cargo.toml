@@ -8,7 +8,7 @@ publish = false
 
 [dev-dependencies]
 plate = { path = "../plate" }
-winit = "0.26"
+winit = "0.27"
 vk-shader-macros = "0.2"
 glam = "0.21"
 image = "0.24"

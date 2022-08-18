@@ -1,6 +1,6 @@
 [package]
 name = "plate"
-version = "0.2.1"
+version = "0.3.0"
 edition = "2021"
 description = "Rust library for writing simpler Vulkan code"
 repository = "https://github.com/pcasotti/plate"
@@ -16,7 +16,7 @@ macros = ["dep:plate-macros", "dep:memoffset"]
 
 [dependencies]
 ash = { version = "0.37", features = ["linked"] }
-winit = "0.26"
+winit = "0.27"
 ash-window = "0.11"
 vk-shader-macros = "0.2"
 thiserror = "1.0"
