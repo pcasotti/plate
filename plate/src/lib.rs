@@ -32,9 +32,13 @@ pub mod sync;
 pub use sync::*;
 pub mod image;
 pub use image::*;
+pub mod rendering;
+pub use rendering::*;
 
-pub use ash::vk::Format as Format;
-pub use ash::vk::MemoryPropertyFlags as MemoryPropertyFlags;
+pub use ash::vk;
+
+pub use ash::vk::Format;
+pub use ash::vk::MemoryPropertyFlags;
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
