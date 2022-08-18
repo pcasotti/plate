@@ -1,7 +1,8 @@
 use std::sync::Arc;
 
 use ash::vk;
-use crate::{Buffer, Device, command::*, PipelineStage, Format, Error, MemoryPropertyFlags}; pub use vk::Filter as Filter;
+use crate::{Buffer, Device, command::*, PipelineStage, Format, Error, MemoryPropertyFlags, ImageLayout};
+pub use vk::Filter as Filter;
 pub use vk::SamplerAddressMode as SamplerAddressMode;
 pub use vk::ImageUsageFlags as ImageUsageFlags;
 pub use vk::ImageAspectFlags as ImageAspectFlags;
@@ -231,9 +232,9 @@ impl Image {
         })
     }
 
-    pub(crate) fn descriptor_info(&self, sampler: &Sampler) -> vk::DescriptorImageInfo {
+    pub(crate) fn descriptor_info(&self, sampler: &Sampler, layout: ImageLayout) -> vk::DescriptorImageInfo {
         *vk::DescriptorImageInfo::builder()
-            .image_layout(vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL)
+            .image_layout(layout)
             .image_view(self.view)
             .sampler(sampler.sampler)
     }

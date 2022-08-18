@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use ash::vk;
 
-use crate::{image::*, Buffer, CommandBuffer, Device, Error, Pipeline};
+use crate::{image::*, Buffer, CommandBuffer, Device, Error, Pipeline, ImageLayout};
 
 pub use vk::DescriptorType;
 pub use vk::ShaderStageFlags as ShaderStage;
@@ -354,7 +354,11 @@ impl DescriptorAllocator {
     /// # plate::ImageUsageFlags::empty(), plate::ImageAspectFlags::empty())?;
     /// # let sampler = plate::Sampler::new(&device, &Default::default())?;
     /// let allocator = plate::DescriptorAllocator::new(&device)
-    ///     .add_image_binding(0, plate::DescriptorType::COMBINED_IMAGE_SAMPLER, &image, &sampler);
+    ///     .add_image_binding(
+    ///         0, plate::DescriptorType::COMBINED_IMAGE_SAMPLER,
+    ///         &image, &sampler,
+    ///         plate::ImageLayout::SHADER_READ_ONLY_OPTIMAL
+    ///     );
     /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// ```
     pub fn add_image_binding(
@@ -363,8 +367,9 @@ impl DescriptorAllocator {
         ty: DescriptorType,
         image: &Image,
         sampler: &Sampler,
+        layout: ImageLayout,
     ) -> &mut Self {
-        let info = [image.descriptor_info(sampler)];
+        let info = [image.descriptor_info(sampler, layout)];
         let write = WriteDescriptor::Image {
             binding,
             ty,
@@ -480,7 +485,7 @@ impl DescriptorSet {
     /// # let cmd_buffer = cmd_pool.alloc_cmd_buffer(plate::CommandBufferLevel::PRIMARY)?;
     /// # let swapchain = plate::swapchain::Swapchain::new(&device, &window)?;
     /// # let layout = plate::DescriptorSetLayout::new(&device, &[])?;
-    /// # let pipeline = plate::pipeline::Pipeline::new(&device, &swapchain, &[], &[],
+    /// # let pipeline = plate::pipeline::Pipeline::new(&device, &swapchain.render_pass(), &[], &[],
     /// # &Default::default())?;
     /// # let pool = plate::DescriptorPool::new(&device, &[], 2)?;
     /// let descriptor_set = plate::DescriptorAllocator::new(&device).allocate(&layout, &pool)?;
