@@ -78,7 +78,7 @@ impl CommandPool {
 
         let cmd_buffers = unsafe { self.device.allocate_command_buffers(&alloc_info)? };
         Ok(cmd_buffers.into_iter()
-            .map(|cmd_buffer| CommandBuffer { device: Arc::clone(&self.device), cmd_pool: self.cmd_pool, cmd_buffer })
+            .map(|cmd_buffer| CommandBuffer { device: Arc::clone(&self.device), cmd_buffer })
             .collect())
     }
 
@@ -104,7 +104,6 @@ impl CommandPool {
 /// Used to send instructions to the GPU.
 pub struct CommandBuffer {
     device: Arc<Device>,
-    cmd_pool: vk::CommandPool,
     cmd_buffer: vk::CommandBuffer,
 }
 
@@ -113,14 +112,6 @@ impl std::ops::Deref for CommandBuffer {
 
     fn deref(&self) -> &Self::Target {
         &self.cmd_buffer
-    }
-}
-
-impl Drop for CommandBuffer {
-    fn drop(&mut self) {
-        unsafe {
-            self.device.free_command_buffers(self.cmd_pool, &[self.cmd_buffer]);
-        }
     }
 }
 
