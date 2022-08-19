@@ -16,7 +16,7 @@ Rust library for writing simpler Vulkan code
 [license-badge]: https://img.shields.io/crates/l/plate
 [license-url]: https://github.com/pcasotti/plate/blob/main/LICENSE
 
-## Instalation
+## Installation
 
 Add the library to your Cargo.toml file:
 ```toml
