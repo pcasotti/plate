@@ -87,6 +87,7 @@ impl std::ops::Deref for Instance {
 impl Drop for Instance {
     fn drop(&mut self) {
         unsafe {
+            self.debugger = None;
             self.destroy_instance(None);
         }
     }
