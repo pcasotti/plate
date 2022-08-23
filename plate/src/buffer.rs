@@ -104,8 +104,8 @@ impl IndexBuffer {
     /// let index_buffer = plate::IndexBuffer::new(&device, &indices, &cmd_pool)?;
     /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// ```
-    pub fn new(device: &Arc<Device>, data: &[T], cmd_pool: &CommandPool) -> Result<Self, Error> {
-        let size = (mem::size_of::<T>() * data.len()) as u64;
+    pub fn new(device: &Arc<Device>, data: &[u32], cmd_pool: &CommandPool) -> Result<Self, Error> {
+        let size = (mem::size_of::<u32>() * data.len()) as u64;
         let staging = Buffer::new(
             device,
             data.len(),
