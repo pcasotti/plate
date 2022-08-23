@@ -86,9 +86,9 @@ impl<T> VertexBuffer<T> {
 }
 
 /// A struct to hold a index buffer.
-pub struct IndexBuffer<T>(Buffer<T>);
+pub struct IndexBuffer(Buffer<u32>);
 
-impl<T> IndexBuffer<T> {
+impl IndexBuffer {
     /// Creates a new IndexBuffer with data from a slice.
     /// 
     /// # Examples
