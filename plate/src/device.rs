@@ -2,7 +2,7 @@ use std::{fmt, ops, sync::Arc};
 
 use ash::{extensions::khr, vk};
 
-use crate::{Surface, Instance, CommandBuffer, Semaphore, Fence, Error, MemoryPropertyFlags};
+use crate::{Instance, InstanceParameters, CommandBuffer, Semaphore, Fence, Error, MemoryPropertyFlags};
 
 /// Errors from the device module.
 #[derive(thiserror::Error, Debug)]
@@ -43,7 +43,6 @@ pub struct Queue {
 /// The Device is responsible for most of the vulkan operations.
 pub struct Device {
     device: ash::Device,
-    pub(crate) surface: Surface,
     pub(crate) instance: Instance,
     pub(crate) physical_device: vk::PhysicalDevice,
     /// A [`Queue`] of type [`Graphics`](QueueType::Graphics) available in this device.
@@ -80,16 +79,16 @@ impl Device {
     /// ```no_run
     /// # let event_loop = winit::event_loop::EventLoop::new();
     /// # let window = winit::window::WindowBuilder::new().build(&event_loop)?;
-    /// # let instance = plate::Instance::new(Some(&window), &Default::default())?;
-    /// # let surface = plate::Surface::new(&instance, &window)?;
-    /// let device = plate::Device::new(instance, surface, &Default::default())?;
+    /// # let device = plate::Device::new(&Default::default(), &Default::default(), Some(&window))?;
     /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// ```
     pub fn new(
-        instance: Instance,
-        surface: Surface,
         params: &DeviceParameters,
+        instance_params: &InstanceParameters,
+        window: Option<&winit::window::Window>
     ) -> Result<Arc<Self>, Error> {
+        let instance = Instance::new(window, instance_params)?;
+
         let devices = unsafe { instance.enumerate_physical_devices()? };
         let physical_device = pick_device(&devices, &instance, params)?;
 
@@ -97,7 +96,6 @@ impl Device {
             unsafe { instance.get_physical_device_queue_family_properties(physical_device) };
 
         let mut graphics_family = None;
-        let mut present_family = None;
         queue_properties
             .iter()
             .enumerate()
@@ -108,7 +106,7 @@ impl Device {
                     graphics_family = Some(i);
                 }
 
-                if present_family.is_none() {
+                /*if present_family.is_none() {
                     let surface_support = unsafe {
                         surface.surface_loader.get_physical_device_surface_support(
                             physical_device,
@@ -119,7 +117,7 @@ impl Device {
                     if surface_support {
                         present_family = Some(i);
                     }
-                }
+                }*/
 
                 Ok(())
             })
@@ -127,8 +125,7 @@ impl Device {
 
         let graphics_family =
             graphics_family.ok_or(DeviceError::QueueNotFound(QueueType::Graphics))? as u32;
-        let present_family =
-            present_family.ok_or(DeviceError::QueueNotFound(QueueType::Present))? as u32;
+        let present_family = graphics_family;
 
         let mut unique_queue_families = std::collections::HashSet::new();
         unique_queue_families.insert(graphics_family);
@@ -168,7 +165,6 @@ impl Device {
 
         Ok(Arc::new(Self {
             device,
-            surface,
             instance,
             physical_device,
             graphics_queue,
@@ -183,9 +179,7 @@ impl Device {
     /// ```no_run
     /// # let event_loop = winit::event_loop::EventLoop::new();
     /// # let window = winit::window::WindowBuilder::new().build(&event_loop)?;
-    /// # let instance = plate::Instance::new(Some(&window), &Default::default())?;
-    /// # let surface = plate::Surface::new(&instance, &window)?;
-    /// # let device = plate::Device::new(instance, surface, &Default::default())?;
+    /// # let device = plate::Device::new(&Default::default(), &Default::default(), Some(&window))?;
     /// # let cmd_pool = plate::CommandPool::new(&device)?;
     /// # let cmd_buffer = cmd_pool.alloc_cmd_buffer(plate::CommandBufferLevel::PRIMARY)?;
     /// # let fence = plate::Fence::new(&device, plate::FenceFlags::SIGNALED)?;
@@ -243,9 +237,7 @@ impl Device {
     /// ```no_run
     /// # let event_loop = winit::event_loop::EventLoop::new();
     /// # let window = winit::window::WindowBuilder::new().build(&event_loop)?;
-    /// # let instance = plate::Instance::new(Some(&window), &Default::default())?;
-    /// # let surface = plate::Surface::new(&instance, &window)?;
-    /// # let device = plate::Device::new(instance, surface, &Default::default())?;
+    /// # let device = plate::Device::new(&Default::default(), &Default::default(), Some(&window))?;
     /// device.wait_idle()?;
     /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// ```

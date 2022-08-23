@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use ash::{extensions::khr, vk};
 
-use crate::{Device, sync::*, image::*, Error, CommandBuffer, Format, rendering::*, PipelineStage};
+use crate::{Device, sync::*, image::*, Error, CommandBuffer, Format, rendering::*, PipelineStage, Surface};
 
 /// Errors from the swapchain module.
 #[derive(thiserror::Error, Debug)]
@@ -13,7 +13,7 @@ pub enum SwapchainError {
 }
 
 /// The Swapchain is responsible for providing images to be rendered to the screen.
-pub struct Swapchain(pub(crate) Swap);
+pub struct Swapchain(pub(crate) Swap, Surface);
 
 impl Swapchain {
     /// Creates a Swapchain.
@@ -24,14 +24,13 @@ impl Swapchain {
     /// # struct Vertex(f32);
     /// # let event_loop = winit::event_loop::EventLoop::new();
     /// # let window = winit::window::WindowBuilder::new().build(&event_loop)?;
-    /// # let instance = plate::Instance::new(Some(&window), &Default::default())?;
-    /// # let surface = plate::Surface::new(&instance, &window)?;
-    /// # let device = plate::Device::new(instance, surface, &Default::default())?;
+    /// # let device = plate::Device::new(&Default::default(), &Default::default(), Some(&window))?;
     /// let swapchain = plate::swapchain::Swapchain::new(&device, &window)?;
     /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// ```
     pub fn new(device: &Arc<Device>, window: &winit::window::Window) -> Result<Self, Error> {
-        Ok(Self(Swap::new(device, window, None)?))
+        let surface = Surface::new(&device.instance, &window)?;
+        Ok(Self(Swap::new(device, window, &surface, None)?, surface))
     }
 
     /// Recreates the swapchain.
@@ -44,16 +43,14 @@ impl Swapchain {
     /// # struct Vertex(f32);
     /// # let event_loop = winit::event_loop::EventLoop::new();
     /// # let window = winit::window::WindowBuilder::new().build(&event_loop)?;
-    /// # let instance = plate::Instance::new(Some(&window), &Default::default())?;
-    /// # let surface = plate::Surface::new(&instance, &window)?;
-    /// # let device = plate::Device::new(instance, surface, &Default::default())?;
+    /// # let device = plate::Device::new(&Default::default(), &Default::default(), Some(&window))?;
     /// let mut swapchain = plate::swapchain::Swapchain::new(&device, &window)?;
     /// swapchain.recreate(&window)?;
     /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// ```
     pub fn recreate(&mut self, window: &winit::window::Window) -> Result<(), Error> {
         self.0.device.wait_idle()?;
-        Ok(self.0 = Swap::new(&self.0.device, window, Some(&self))?)
+        Ok(self.0 = Swap::new(&self.0.device, window, &self.1, Some(&self))?)
     }
 
     /// Returns the aspect ration of the extent.
@@ -64,9 +61,7 @@ impl Swapchain {
     /// # struct Vertex(f32);
     /// # let event_loop = winit::event_loop::EventLoop::new();
     /// # let window = winit::window::WindowBuilder::new().build(&event_loop)?;
-    /// # let instance = plate::Instance::new(Some(&window), &Default::default())?;
-    /// # let surface = plate::Surface::new(&instance, &window)?;
-    /// # let device = plate::Device::new(instance, surface, &Default::default())?;
+    /// # let device = plate::Device::new(&Default::default(), &Default::default(), Some(&window))?;
     /// # let mut swapchain = plate::swapchain::Swapchain::new(&device, &window)?;
     /// let aspect_ratio = swapchain.aspect_ratio();
     /// # Ok::<(), Box<dyn std::error::Error>>(())
@@ -86,9 +81,7 @@ impl Swapchain {
     /// # struct Vertex(f32);
     /// # let event_loop = winit::event_loop::EventLoop::new();
     /// # let window = winit::window::WindowBuilder::new().build(&event_loop)?;
-    /// # let instance = plate::Instance::new(Some(&window), &Default::default())?;
-    /// # let surface = plate::Surface::new(&instance, &window)?;
-    /// # let device = plate::Device::new(instance, surface, &Default::default())?;
+    /// # let device = plate::Device::new(&Default::default(), &Default::default(), Some(&window))?;
     /// # let cmd_pool = plate::CommandPool::new(&device)?;
     /// # let cmd_buffer = cmd_pool.alloc_cmd_buffer(plate::CommandBufferLevel::PRIMARY)?;
     /// # let mut swapchain = plate::swapchain::Swapchain::new(&device, &window)?;
@@ -114,9 +107,7 @@ impl Swapchain {
     /// ```no_run
     /// # let event_loop = winit::event_loop::EventLoop::new();
     /// # let window = winit::window::WindowBuilder::new().build(&event_loop)?;
-    /// # let instance = plate::Instance::new(Some(&window), &Default::default())?;
-    /// # let surface = plate::Surface::new(&instance, &window)?;
-    /// # let device = plate::Device::new(instance, surface, &Default::default())?;
+    /// # let device = plate::Device::new(&Default::default(), &Default::default(), Some(&window))?;
     /// # let cmd_pool = plate::CommandPool::new(&device)?;
     /// # let cmd_buffer = cmd_pool.alloc_cmd_buffer(plate::CommandBufferLevel::PRIMARY)?;
     /// # let mut swapchain = plate::swapchain::Swapchain::new(&device, &window)?;
@@ -141,9 +132,7 @@ impl Swapchain {
     /// ```no_run
     /// # let event_loop = winit::event_loop::EventLoop::new();
     /// # let window = winit::window::WindowBuilder::new().build(&event_loop)?;
-    /// # let instance = plate::Instance::new(Some(&window), &Default::default())?;
-    /// # let surface = plate::Surface::new(&instance, &window)?;
-    /// # let device = plate::Device::new(instance, surface, &Default::default())?;
+    /// # let device = plate::Device::new(&Default::default(), &Default::default(), Some(&window))?;
     /// # let mut swapchain = plate::swapchain::Swapchain::new(&device, &window)?;
     /// # let acquire_sem = plate::Semaphore::new(&device, plate::SemaphoreFlags::empty())?;
     /// let (image_index, _) = swapchain.next_image(&acquire_sem).unwrap();
@@ -169,9 +158,7 @@ impl Swapchain {
     /// ```no_run
     /// # let event_loop = winit::event_loop::EventLoop::new();
     /// # let window = winit::window::WindowBuilder::new().build(&event_loop)?;
-    /// # let instance = plate::Instance::new(Some(&window), &Default::default())?;
-    /// # let surface = plate::Surface::new(&instance, &window)?;
-    /// # let device = plate::Device::new(instance, surface, &Default::default())?;
+    /// # let device = plate::Device::new(&Default::default(), &Default::default(), Some(&window))?;
     /// # let mut swapchain = plate::swapchain::Swapchain::new(&device, &window)?;
     /// # let present_sem = plate::Semaphore::new(&device, plate::SemaphoreFlags::empty())?;
     /// let image_index = 0;
@@ -198,9 +185,7 @@ impl Swapchain {
     /// ```no_run
     /// # let event_loop = winit::event_loop::EventLoop::new();
     /// # let window = winit::window::WindowBuilder::new().build(&event_loop)?;
-    /// # let instance = plate::Instance::new(Some(&window), &Default::default())?;
-    /// # let surface = plate::Surface::new(&instance, &window)?;
-    /// # let device = plate::Device::new(instance, surface, &Default::default())?;
+    /// # let device = plate::Device::new(&Default::default(), &Default::default(), Some(&window))?;
     /// # let mut swapchain = plate::swapchain::Swapchain::new(&device, &window)?;
     /// # let present_sem = plate::Semaphore::new(&device, plate::SemaphoreFlags::empty())?;
     /// let depth_format = swapchain.depth_format();
@@ -217,9 +202,7 @@ impl Swapchain {
     /// ```no_run
     /// # let event_loop = winit::event_loop::EventLoop::new();
     /// # let window = winit::window::WindowBuilder::new().build(&event_loop)?;
-    /// # let instance = plate::Instance::new(Some(&window), &Default::default())?;
-    /// # let surface = plate::Surface::new(&instance, &window)?;
-    /// # let device = plate::Device::new(instance, surface, &Default::default())?;
+    /// # let device = plate::Device::new(&Default::default(), &Default::default(), Some(&window))?;
     /// # let mut swapchain = plate::swapchain::Swapchain::new(&device, &window)?;
     /// # let present_sem = plate::Semaphore::new(&device, plate::SemaphoreFlags::empty())?;
     /// let format = swapchain.image_format();
@@ -236,9 +219,7 @@ impl Swapchain {
     /// ```no_run
     /// # let event_loop = winit::event_loop::EventLoop::new();
     /// # let window = winit::window::WindowBuilder::new().build(&event_loop)?;
-    /// # let instance = plate::Instance::new(Some(&window), &Default::default())?;
-    /// # let surface = plate::Surface::new(&instance, &window)?;
-    /// # let device = plate::Device::new(instance, surface, &Default::default())?;
+    /// # let device = plate::Device::new(&Default::default(), &Default::default(), Some(&window))?;
     /// # let mut swapchain = plate::swapchain::Swapchain::new(&device, &window)?;
     /// # let present_sem = plate::Semaphore::new(&device, plate::SemaphoreFlags::empty())?;
     /// let format = swapchain.image_format();
@@ -255,9 +236,7 @@ impl Swapchain {
     /// ```no_run
     /// # let event_loop = winit::event_loop::EventLoop::new();
     /// # let window = winit::window::WindowBuilder::new().build(&event_loop)?;
-    /// # let instance = plate::Instance::new(Some(&window), &Default::default())?;
-    /// # let surface = plate::Surface::new(&instance, &window)?;
-    /// # let device = plate::Device::new(instance, surface, &Default::default())?;
+    /// # let device = plate::Device::new(&Default::default(), &Default::default(), Some(&window))?;
     /// # let mut swapchain = plate::swapchain::Swapchain::new(&device, &window)?;
     /// # let present_sem = plate::Semaphore::new(&device, plate::SemaphoreFlags::empty())?;
     /// let render_pass = swapchain.render_pass();
@@ -305,33 +284,31 @@ impl Swap {
     fn new(
         device: &Arc<Device>,
         window: &winit::window::Window,
+        surface: &Surface,
         old_swapchain: Option<&Swapchain>,
     ) -> Result<Self, Error> {
         let surface_capabilities = unsafe {
-            device
-                .surface
+            surface
                 .surface_loader
                 .get_physical_device_surface_capabilities(
                     device.physical_device,
-                    device.surface.surface,
+                    surface.surface,
                 )?
         };
         let surface_formats = unsafe {
-            device
-                .surface
+            surface
                 .surface_loader
                 .get_physical_device_surface_formats(
                     device.physical_device,
-                    device.surface.surface,
+                    surface.surface,
                 )?
         };
         let present_modes = unsafe {
-            device
-                .surface
+            surface
                 .surface_loader
                 .get_physical_device_surface_present_modes(
                     device.physical_device,
-                    device.surface.surface,
+                    surface.surface,
                 )?
         };
 
@@ -369,7 +346,7 @@ impl Swap {
         };
 
         let mut swapchain_info = vk::SwapchainCreateInfoKHR::builder()
-            .surface(device.surface.surface)
+            .surface(surface.surface)
             .min_image_count(image_count)
             .image_format(image_format.format)
             .image_color_space(image_format.color_space)

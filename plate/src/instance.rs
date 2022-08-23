@@ -33,7 +33,7 @@ impl Into<u32> for ApiVersion {
     }
 }
 
-/// Optional parameters when creating the [`Instance`].
+/// Optional parameters when creating an Instance.
 pub struct InstanceParameters {
     /// Application name.
     pub app_name: String,
@@ -68,8 +68,7 @@ impl Default for InstanceParameters {
     }
 }
 
-/// Entry point of the vulkan library.
-pub struct Instance {
+pub(crate) struct Instance {
     instance: ash::Instance,
     pub(crate) entry: ash::Entry,
     #[allow(dead_code)]
@@ -94,19 +93,6 @@ impl Drop for Instance {
 }
 
 impl Instance {
-    /// Creates a Instance.
-    ///
-    /// If a window is provided, the required extensions for presenting to it are automatically
-    /// added.
-    ///
-    /// # Examples
-    ///
-    /// ```no_run
-    /// # let event_loop = winit::event_loop::EventLoop::new();
-    /// # let window = winit::window::WindowBuilder::new().build(&event_loop)?;
-    /// let instance = plate::Instance::new(Some(&window), &Default::default())?;
-    /// # Ok::<(), Box<dyn std::error::Error>>(())
-    /// ```
     pub fn new(
         window: Option<&winit::window::Window>,
         params: &InstanceParameters,

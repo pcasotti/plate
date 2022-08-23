@@ -25,9 +25,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let event_loop = winit::event_loop::EventLoop::new();
     let window = winit::window::WindowBuilder::new().build(&event_loop)?;
 
-    let instance = plate::Instance::new(Some(&window), &Default::default())?;
-    let surface = plate::Surface::new(&instance, &window)?;
-    let device = plate::Device::new(instance, surface, &Default::default())?;
+    let device = plate::Device::new(&Default::default(), &Default::default(), Some(&window))?;
     let mut swapchain = plate::swapchain::Swapchain::new(&device, &window)?;
     let pipeline = plate::pipeline::Pipeline::new(
         &device,
