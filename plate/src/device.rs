@@ -1,4 +1,4 @@
-use std::{fmt, ops, sync::Arc};
+use std::{ops, sync::Arc};
 
 use ash::{extensions::khr, vk};
 
@@ -7,9 +7,9 @@ use crate::{Instance, InstanceParameters, CommandBuffer, Semaphore, Fence, Error
 /// Errors from the device module.
 #[derive(thiserror::Error, Debug)]
 pub enum DeviceError {
-    /// None of the available queue families match the requested type.
-    #[error("{0}")]
-    QueueNotFound(QueueType),
+    /// None of the available queue families are suitable.
+    #[error("None of the available queue families are suitable")]
+    QueueNotFound,
     /// The physical device memory properties does not support the requested flags.
     #[error("{0:?}")]
     MemoryTypeNotFound(MemoryPropertyFlags),
@@ -18,26 +18,10 @@ pub enum DeviceError {
     NoDeviceSuitable,
 }
 
-/// Type and functionality of a queue.
-#[derive(Debug)]
-pub enum QueueType {
-    /// A queue capable of performing graphics operations.
-    Graphics,
-    /// A queue capable of performing present operations.
-    Present,
-}
-
-impl fmt::Display for QueueType {
-    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
-        write!(f, "{:?}", self)
-    }
-}
-
-/// Holds a device queue and the index of the corresponding queue family.
 #[derive(Clone, Copy)]
-pub struct Queue {
-    pub(crate) queue: vk::Queue,
-    pub(crate) family: u32,
+pub(crate) struct Queue {
+    pub queue: vk::Queue,
+    pub family: u32,
 }
 
 /// The Device is responsible for most of the vulkan operations.
@@ -45,10 +29,7 @@ pub struct Device {
     device: ash::Device,
     pub(crate) instance: Instance,
     pub(crate) physical_device: vk::PhysicalDevice,
-    /// A [`Queue`] of type [`Graphics`](QueueType::Graphics) available in this device.
-    pub graphics_queue: Queue,
-    /// A [`Queue`] of type [`Present`](QueueType::Present) available in this device.
-    pub present_queue: Queue,
+    pub(crate) queue: Queue,
 }
 
 impl Drop for Device {
@@ -105,40 +86,15 @@ impl Device {
                 {
                     graphics_family = Some(i);
                 }
-
-                /*if present_family.is_none() {
-                    let surface_support = unsafe {
-                        surface.surface_loader.get_physical_device_surface_support(
-                            physical_device,
-                            i as u32,
-                            surface.surface,
-                        )?
-                    };
-                    if surface_support {
-                        present_family = Some(i);
-                    }
-                }*/
-
                 Ok(())
             })
             .collect::<Result<_, Error>>()?;
 
-        let graphics_family =
-            graphics_family.ok_or(DeviceError::QueueNotFound(QueueType::Graphics))? as u32;
-        let present_family = graphics_family;
+        let queue_family = graphics_family.ok_or(DeviceError::QueueNotFound)? as u32;
 
-        let mut unique_queue_families = std::collections::HashSet::new();
-        unique_queue_families.insert(graphics_family);
-        unique_queue_families.insert(present_family);
-
-        let queue_infos = unique_queue_families
-            .iter()
-            .map(|queue_family| {
-                *vk::DeviceQueueCreateInfo::builder()
-                    .queue_family_index(*queue_family)
-                    .queue_priorities(&[0.0])
-            })
-            .collect::<Vec<vk::DeviceQueueCreateInfo>>();
+        let queue_infos = [*vk::DeviceQueueCreateInfo::builder()
+            .queue_family_index(queue_family)
+            .queue_priorities(&[0.0])];
 
         let features = vk::PhysicalDeviceFeatures::builder();
         let extensions = [khr::Swapchain::name().as_ptr()];
@@ -153,26 +109,20 @@ impl Device {
 
         let device = unsafe { instance.create_device(physical_device, &device_info, None)? };
 
-        let graphics_queue = Queue {
-            queue: unsafe { device.get_device_queue(graphics_family, 0) },
-            family: graphics_family,
-        };
-
-        let present_queue = Queue {
-            queue: unsafe { device.get_device_queue(present_family, 0) },
-            family: present_family,
+        let queue = Queue {
+            queue: unsafe { device.get_device_queue(queue_family, 0) },
+            family: queue_family,
         };
 
         Ok(Arc::new(Self {
             device,
             instance,
             physical_device,
-            graphics_queue,
-            present_queue,
+            queue,
         }))
     }
 
-    /// Submit a [`CommandBuffer`] to be executed by a [`Queue`].
+    /// Submit a [`CommandBuffer`] to be executed.
     ///
     /// # Examples
     ///
@@ -186,7 +136,6 @@ impl Device {
     /// # let acquire_sem = plate::Semaphore::new(&device, plate::SemaphoreFlags::empty())?;
     /// # let present_sem = plate::Semaphore::new(&device, plate::SemaphoreFlags::empty())?;
     /// device.queue_submit(
-    ///     device.graphics_queue,
     ///     &cmd_buffer,
     ///     plate::PipelineStage::COLOR_ATTACHMENT_OUTPUT,
     ///     Some(&acquire_sem),
@@ -197,7 +146,6 @@ impl Device {
     /// ```
     pub fn queue_submit(
         &self,
-        queue: Queue,
         command_buffer: &CommandBuffer,
         wait_stage: PipelineStage,
         wait_semaphore: Option<&Semaphore>,
@@ -227,7 +175,7 @@ impl Device {
             .signal_semaphores(&signal_semaphores)
             .command_buffers(&command_buffers)];
 
-        Ok(unsafe { self.device.queue_submit(queue.queue, &submit_infos, fence)? })
+        Ok(unsafe { self.device.queue_submit(self.queue.queue, &submit_infos, fence)? })
     }
 
     /// Wait for all device queues to be executed.

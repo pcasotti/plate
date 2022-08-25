@@ -175,7 +175,7 @@ impl Swapchain {
             .swapchains(&swapchains)
             .image_indices(&image_indices);
 
-        Ok(unsafe { self.0.swapchain_loader.queue_present(self.0.device.present_queue.queue, &present_info)? })
+        Ok(unsafe { self.0.swapchain_loader.queue_present(self.0.device.queue.queue, &present_info)? })
     }
 
     /// Returns the depth image format.
@@ -337,7 +337,7 @@ impl Swap {
             ),
         };
 
-        let queue_families = [device.graphics_queue.family, device.present_queue.family];
+        let queue_families = [device.queue.family, device.queue.family];
 
         let image_count = if surface_capabilities.max_image_count == 0 {
             surface_capabilities.min_image_count + 1

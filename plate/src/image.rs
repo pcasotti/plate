@@ -330,6 +330,6 @@ fn transition_layout(device: &Arc<Device>, image: vk::Image, cmd_pool: &CommandP
         ) };
     })?;
 
-    device.queue_submit(device.graphics_queue, &cmd_buffer, PipelineStage::empty(), None, None, None)?;
-    Ok(unsafe { device.queue_wait_idle(device.graphics_queue.queue)? })
+    device.queue_submit(&cmd_buffer, PipelineStage::empty(), None, None, None)?;
+    Ok(unsafe { device.queue_wait_idle(device.queue.queue)? })
 }

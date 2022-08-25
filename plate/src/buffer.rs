@@ -456,8 +456,8 @@ impl<T> Buffer<T> {
             };
         })?;
 
-        self.device.queue_submit(self.device.graphics_queue, &command_buffer, PipelineStage::empty(), None, None, None)?;
-        Ok(unsafe { self.device.queue_wait_idle(self.device.graphics_queue.queue)? })
+        self.device.queue_submit(&command_buffer, PipelineStage::empty(), None, None, None)?;
+        Ok(unsafe { self.device.queue_wait_idle(self.device.queue.queue)? })
     }
 
     pub(crate) fn copy_to_image(&self, image: vk::Image, width: u32, height: u32, cmd_pool: &CommandPool) -> Result<(), Error> {
@@ -483,8 +483,8 @@ impl<T> Buffer<T> {
             unsafe { self.device.cmd_copy_buffer_to_image(*cmd_buffer, self.buffer, image, vk::ImageLayout::TRANSFER_DST_OPTIMAL, &[*region]) };
         })?;
 
-        self.device.queue_submit(self.device.graphics_queue, &cmd_buffer, PipelineStage::empty(), None, None, None)?;
-        Ok(unsafe { self.device.queue_wait_idle(self.device.graphics_queue.queue)? })
+        self.device.queue_submit(&cmd_buffer, PipelineStage::empty(), None, None, None)?;
+        Ok(unsafe { self.device.queue_wait_idle(self.device.queue.queue)? })
     }
 
     pub(crate) fn descriptor_info(&self, offset: usize, range: usize) -> vk::DescriptorBufferInfo {

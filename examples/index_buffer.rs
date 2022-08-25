@@ -87,7 +87,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 }).unwrap();
 
                 device.queue_submit(
-                    device.graphics_queue,
                     &cmd_buffer,
                     plate::PipelineStage::COLOR_ATTACHMENT_OUTPUT,
                     Some(&acquire_sem),
