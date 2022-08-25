@@ -10,6 +10,9 @@ pub use vk::SharingMode as SharingMode;
 /// A struct to hold a vertex buffer.
 pub struct VertexBuffer<T>(Buffer<T>);
 
+unsafe impl<T> Send for VertexBuffer<T> {}
+unsafe impl<T> Sync for VertexBuffer<T> {}
+
 impl<T> VertexBuffer<T> {
     /// Creates a new VertexBuffer with data from a slice.
     /// 
@@ -83,6 +86,9 @@ impl<T> VertexBuffer<T> {
 
 /// A struct to hold a index buffer.
 pub struct IndexBuffer(Buffer<u32>);
+
+unsafe impl Send for IndexBuffer {}
+unsafe impl Sync for IndexBuffer {}
 
 impl IndexBuffer {
     /// Creates a new IndexBuffer with data from a slice.
@@ -166,6 +172,9 @@ pub struct MappedBuffer<T> {
     buffer: Buffer<T>,
     mapped: *mut ffi::c_void,
 }
+
+unsafe impl<T> Send for MappedBuffer<T> {}
+unsafe impl<T> Sync for MappedBuffer<T> {}
 
 impl<T> MappedBuffer<T> {
     /// Unmaps the memory from the host and returns the inner [`Buffer`].
@@ -329,6 +338,9 @@ pub struct Buffer<T> {
 
     marker: marker::PhantomData<T>,
 }
+
+unsafe impl<T> Send for Buffer<T> {}
+unsafe impl<T> Sync for Buffer<T> {}
 
 impl<T> Drop for Buffer<T> {
     fn drop(&mut self) {
