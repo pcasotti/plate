@@ -53,7 +53,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     )?;
     let pipeline = plate::pipeline::Pipeline::new(
         &device,
-        swapchain.render_pass(),
+        &swapchain.render_pass,
         vk_shader_macros::include_glsl!("shaders/camera/shader.vert"),
         vk_shader_macros::include_glsl!("shaders/camera/shader.frag"),
         &plate::PipelineParameters {

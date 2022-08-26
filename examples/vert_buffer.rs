@@ -18,7 +18,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut swapchain = plate::swapchain::Swapchain::new(&device, &window)?;
     let pipeline = plate::pipeline::Pipeline::new(
         &device,
-        swapchain.render_pass(),
+        &swapchain.render_pass,
         vk_shader_macros::include_glsl!("shaders/vert_buffer/shader.vert"),
         vk_shader_macros::include_glsl!("shaders/vert_buffer/shader.frag"),
         &plate::PipelineParameters {

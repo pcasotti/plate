@@ -145,7 +145,7 @@ impl Pipeline {
     /// # let (vert_code, frag_code) = ([0], [0]);
     /// let pipeline = plate::pipeline::Pipeline::new(
     ///     &device,
-    ///     &swapchain.render_pass(),
+    ///     &swapchain.render_pass,
     ///     &vert_code,
     ///     &frag_code,
     ///     &Default::default(),
@@ -295,7 +295,7 @@ impl Pipeline {
     /// # let cmd_pool = plate::CommandPool::new(&device)?;
     /// # let cmd_buffer = cmd_pool.alloc_cmd_buffer(plate::CommandBufferLevel::PRIMARY)?;
     /// # let swapchain = plate::swapchain::Swapchain::new(&device, &window)?;
-    /// # let pipeline = plate::pipeline::Pipeline::new(&device, &swapchain.render_pass(), &[], &[],
+    /// # let pipeline = plate::pipeline::Pipeline::new(&device, &swapchain.render_pass, &[], &[],
     /// # &Default::default())?;
     /// // cmd_buffer.record(.., || {
     ///     pipeline.bind(&cmd_buffer, swapchain.extent());
