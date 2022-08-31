@@ -1,9 +1,8 @@
-//TODO recreate only necessary swapchain elements.
 use std::sync::Arc;
 
 use ash::{extensions::khr, vk};
 
-use crate::{Device, sync::*, image::*, Error, CommandBuffer, Format, rendering::*, PipelineStage, Surface};
+use crate::{Device, sync::*, image::*, Error, CommandBuffer, rendering::*, PipelineStage, Surface};
 
 /// Errors from the swapchain module.
 #[derive(thiserror::Error, Debug)]
@@ -19,18 +18,16 @@ pub struct Swapchain {
     #[allow(dead_code)]
     surface: Surface,
 
-    pub swapchain_loader: khr::Swapchain,
-    pub swapchain: vk::SwapchainKHR,
+    swapchain_loader: khr::Swapchain,
+    swapchain: vk::SwapchainKHR,
 
-    pub extent: vk::Extent2D,
+    extent: vk::Extent2D,
 
     #[allow(dead_code)]
     images: Vec<Image>,
-    image_format: Format,
 
     #[allow(dead_code)]
     depth_image: Image,
-    depth_format: Format,
 
     pub render_pass: RenderPass,
     framebuffers: Vec<Framebuffer>,
@@ -69,9 +66,7 @@ impl Swapchain {
             swapchain,
             extent,
             images,
-            image_format,
             depth_image,
-            depth_format,
             render_pass,
             framebuffers,
         ) = Self::create_swapchain(device, &surface, window, None)?;
@@ -83,9 +78,7 @@ impl Swapchain {
             swapchain,
             extent,
             images,
-            image_format,
             depth_image,
-            depth_format,
             render_pass,
             framebuffers,
         })
@@ -114,9 +107,7 @@ impl Swapchain {
             swapchain,
             extent,
             images,
-            image_format,
             depth_image,
-            depth_format,
             render_pass,
             framebuffers,
         ) = Self::create_swapchain(&self.device, &self.surface, window, Some(self.swapchain))?;
@@ -130,9 +121,7 @@ impl Swapchain {
         self.swapchain = swapchain;
         self.extent = extent;
         self.images = images;
-        self.image_format = image_format;
         self.depth_image = depth_image;
-        self.depth_format = depth_format;
         self.render_pass = render_pass;
         self.framebuffers = framebuffers;
 
@@ -290,9 +279,7 @@ impl Swapchain {
         vk::SwapchainKHR,
         vk::Extent2D,
         Vec<Image>,
-        Format,
         Image,
-        Format,
         RenderPass,
         Vec<Framebuffer>,
     ), Error> {
@@ -445,9 +432,7 @@ impl Swapchain {
             swapchain,
             extent,
             images,
-            image_format.format,
             depth_image,
-            depth_format,
             render_pass,
             framebuffers,
         ))
