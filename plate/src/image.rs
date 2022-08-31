@@ -129,6 +129,8 @@ pub struct Image {
     image: vk::Image,
     mem: Option<vk::DeviceMemory>,
     pub(crate) view: vk::ImageView,
+    /// The format of the image.
+    pub format: Format,
     /// The width of the image.
     pub width: u32,
     /// The height of the image.
@@ -197,16 +199,7 @@ impl Image {
         let mem = unsafe { device.allocate_memory(&alloc_info, None)? };
         unsafe { device.bind_image_memory(image, mem, 0)? };
 
-        let view = Self::image_view(device, image, image_aspect, format)?;
-
-        Ok(Self {
-            device: Arc::clone(&device),
-            image,
-            mem: Some(mem),
-            view,
-            width,
-            height,
-        })
+        Self::from_vk_image(device, image, width, height, format, image_aspect)
     }
 
     pub(crate) fn from_vk_image(device: &Arc<Device>, image: vk::Image, width: u32, height: u32, format: Format, image_aspect: ImageAspectFlags) -> Result<Self, Error> {
@@ -217,6 +210,7 @@ impl Image {
             image,
             mem: None,
             view,
+            format,
             width,
             height,
         })
