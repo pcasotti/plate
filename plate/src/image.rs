@@ -127,7 +127,7 @@ impl Sampler {
 pub struct Image {
     device: Arc<Device>,
     image: vk::Image,
-    mem: vk::DeviceMemory,
+    mem: Option<vk::DeviceMemory>,
     pub(crate) view: vk::ImageView,
     /// The width of the image.
     pub width: u32,
@@ -139,8 +139,10 @@ impl Drop for Image {
     fn drop(&mut self) {
         unsafe {
             self.device.destroy_image_view(self.view, None);
-            self.device.destroy_image(self.image, None);
-            self.device.free_memory(self.mem, None);
+            if let Some(mem) = self.mem {
+                self.device.destroy_image(self.image, None);
+                self.device.free_memory(mem, None);
+            }
         }
     }
 }
@@ -195,6 +197,39 @@ impl Image {
         let mem = unsafe { device.allocate_memory(&alloc_info, None)? };
         unsafe { device.bind_image_memory(image, mem, 0)? };
 
+        let view = Self::image_view(device, image, image_aspect, format)?;
+
+        Ok(Self {
+            device: Arc::clone(&device),
+            image,
+            mem: Some(mem),
+            view,
+            width,
+            height,
+        })
+    }
+
+    pub(crate) fn from_vk_image(device: &Arc<Device>, image: vk::Image, width: u32, height: u32, format: Format, image_aspect: ImageAspectFlags) -> Result<Self, Error> {
+        let view = Self::image_view(device, image, image_aspect, format)?;
+
+        Ok(Self {
+            device: Arc::clone(&device),
+            image,
+            mem: None,
+            view,
+            width,
+            height,
+        })
+    }
+
+    pub(crate) fn descriptor_info(&self, sampler: &Sampler, layout: ImageLayout) -> vk::DescriptorImageInfo {
+        *vk::DescriptorImageInfo::builder()
+            .image_layout(layout)
+            .image_view(self.view)
+            .sampler(sampler.sampler)
+    }
+
+    fn image_view(device: &Arc<Device>, image: vk::Image, image_aspect: ImageAspectFlags, format: Format) -> Result<vk::ImageView, Error> {
         let components = vk::ComponentMapping {
             r: vk::ComponentSwizzle::IDENTITY,
             g: vk::ComponentSwizzle::IDENTITY,
@@ -216,23 +251,7 @@ impl Image {
             .components(components)
             .subresource_range(subresource_range);
 
-        let view = unsafe { device.create_image_view(&view_info, None)? };
-
-        Ok(Self {
-            device: Arc::clone(&device),
-            image,
-            mem,
-            view,
-            width,
-            height,
-        })
-    }
-
-    pub(crate) fn descriptor_info(&self, sampler: &Sampler, layout: ImageLayout) -> vk::DescriptorImageInfo {
-        *vk::DescriptorImageInfo::builder()
-            .image_layout(layout)
-            .image_view(self.view)
-            .sampler(sampler.sampler)
+        Ok(unsafe { device.create_image_view(&view_info, None)? })
     }
 }
 

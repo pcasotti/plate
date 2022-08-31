@@ -25,8 +25,7 @@ pub struct Swapchain {
     pub extent: vk::Extent2D,
 
     #[allow(dead_code)]
-    images: Vec<vk::Image>,
-    image_views: Vec<vk::ImageView>,
+    images: Vec<Image>,
     image_format: Format,
 
     #[allow(dead_code)]
@@ -40,9 +39,6 @@ pub struct Swapchain {
 impl Drop for Swapchain {
     fn drop(&mut self) {
         unsafe {
-            self.image_views
-                .iter()
-                .for_each(|view| self.device.destroy_image_view(*view, None));
             self.swapchain_loader
                 .destroy_swapchain(self.swapchain, None);
         }
@@ -73,7 +69,6 @@ impl Swapchain {
             swapchain,
             extent,
             images,
-            image_views,
             image_format,
             depth_image,
             depth_format,
@@ -88,7 +83,6 @@ impl Swapchain {
             swapchain,
             extent,
             images,
-            image_views,
             image_format,
             depth_image,
             depth_format,
@@ -120,7 +114,6 @@ impl Swapchain {
             swapchain,
             extent,
             images,
-            image_views,
             image_format,
             depth_image,
             depth_format,
@@ -129,9 +122,6 @@ impl Swapchain {
         ) = Self::create_swapchain(&self.device, &self.surface, window, Some(self.swapchain))?;
 
         unsafe {
-            self.image_views
-                .iter()
-                .for_each(|view| self.device.destroy_image_view(*view, None));
             self.swapchain_loader
                 .destroy_swapchain(self.swapchain, None);
         }
@@ -140,7 +130,6 @@ impl Swapchain {
         self.swapchain = swapchain;
         self.extent = extent;
         self.images = images;
-        self.image_views = image_views;
         self.image_format = image_format;
         self.depth_image = depth_image;
         self.depth_format = depth_format;
@@ -300,8 +289,7 @@ impl Swapchain {
         khr::Swapchain,
         vk::SwapchainKHR,
         vk::Extent2D,
-        Vec<vk::Image>,
-        Vec<vk::ImageView>,
+        Vec<Image>,
         Format,
         Image,
         Format,
@@ -389,35 +377,9 @@ impl Swapchain {
         let swapchain_loader = khr::Swapchain::new(&device.instance, &device);
         let swapchain = unsafe { swapchain_loader.create_swapchain(&swapchain_info, None)? };
 
-        let images = unsafe { swapchain_loader.get_swapchain_images(swapchain)? };
-
-        let image_views = images
-            .iter()
-            .map(|image| {
-                let components = vk::ComponentMapping {
-                    r: vk::ComponentSwizzle::IDENTITY,
-                    g: vk::ComponentSwizzle::IDENTITY,
-                    b: vk::ComponentSwizzle::IDENTITY,
-                    a: vk::ComponentSwizzle::IDENTITY,
-                };
-
-                let subresource_range = *vk::ImageSubresourceRange::builder()
-                    .aspect_mask(vk::ImageAspectFlags::COLOR)
-                    .base_mip_level(0)
-                    .level_count(1)
-                    .base_array_layer(0)
-                    .layer_count(1);
-
-                let view_info = vk::ImageViewCreateInfo::builder()
-                    .image(*image)
-                    .view_type(vk::ImageViewType::TYPE_2D)
-                    .format(image_format.format)
-                    .components(components)
-                    .subresource_range(subresource_range);
-
-                unsafe { device.create_image_view(&view_info, None) }
-            })
-            .collect::<Result<Vec<vk::ImageView>, _>>()?;
+        let images = unsafe { swapchain_loader.get_swapchain_images(swapchain)? }.into_iter()
+            .map(|i| Image::from_vk_image(device, i, extent.width, extent.height, image_format.format, ImageAspectFlags::COLOR))
+            .collect::<Result<Vec<_>, _>>()?;
 
         let depth_format = [
             vk::Format::D32_SFLOAT,
@@ -471,10 +433,10 @@ impl Swapchain {
 
         let render_pass = RenderPass::new(device, &[color_attachment, depth_attachment], &[subpass], &[dependency])?;
 
-        let framebuffers = image_views
+        let framebuffers = images
             .iter()
-            .map(|view| {
-                Framebuffer::from_image_views(device, &render_pass, &[*view, depth_image.view], extent.width, extent.height)
+            .map(|i| {
+                Framebuffer::from_image_views(device, &render_pass, &[i.view, depth_image.view], extent.width, extent.height)
             })
             .collect::<Result<_, _>>()?;
 
@@ -483,7 +445,6 @@ impl Swapchain {
             swapchain,
             extent,
             images,
-            image_views,
             image_format.format,
             depth_image,
             depth_format,
