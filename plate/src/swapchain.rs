@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use ash::{extensions::khr, vk};
 
-use crate::{Device, sync::*, image::*, Error, CommandBuffer, rendering::*, PipelineStage, Surface};
+use crate::{Device, sync::*, image::*, Format, Error, Surface};
 
 /// Errors from the swapchain module.
 #[derive(thiserror::Error, Debug)]
@@ -23,14 +23,9 @@ pub struct Swapchain {
 
     extent: vk::Extent2D,
 
-    #[allow(dead_code)]
-    images: Vec<Image>,
-
-    #[allow(dead_code)]
-    depth_image: Image,
-
-    pub render_pass: RenderPass,
-    framebuffers: Vec<Framebuffer>,
+    pub images: Vec<Image>,
+    pub surface_format: Format,
+    pub depth_format: Format,
 }
 
 impl Drop for Swapchain {
@@ -66,9 +61,8 @@ impl Swapchain {
             swapchain,
             extent,
             images,
-            depth_image,
-            render_pass,
-            framebuffers,
+            surface_format,
+            depth_format,
         ) = Self::create_swapchain(device, &surface, window, None)?;
 
         Ok(Self {
@@ -78,9 +72,8 @@ impl Swapchain {
             swapchain,
             extent,
             images,
-            depth_image,
-            render_pass,
-            framebuffers,
+            surface_format,
+            depth_format,
         })
     }
 
@@ -107,9 +100,8 @@ impl Swapchain {
             swapchain,
             extent,
             images,
-            depth_image,
-            render_pass,
-            framebuffers,
+            surface_format,
+            depth_format,
         ) = Self::create_swapchain(&self.device, &self.surface, window, Some(self.swapchain))?;
 
         unsafe {
@@ -121,63 +113,10 @@ impl Swapchain {
         self.swapchain = swapchain;
         self.extent = extent;
         self.images = images;
-        self.depth_image = depth_image;
-        self.render_pass = render_pass;
-        self.framebuffers = framebuffers;
+        self.surface_format = surface_format;
+        self.depth_format = depth_format;
 
         Ok(())
-    }
-
-    /// Begins the Swapchain render pass.
-    ///
-    /// To be used when recording a CommandBuffer. Any call do a draw command in between this and a
-    /// call to [`end_render_pass()`](Self::end_render_pass()) will draw to this swapchain render pass.
-    ///
-    /// # Examples
-    /// 
-    /// ```no_run
-    /// # struct Vertex(f32);
-    /// # let event_loop = winit::event_loop::EventLoop::new();
-    /// # let window = winit::window::WindowBuilder::new().build(&event_loop)?;
-    /// # let device = plate::Device::new(&Default::default(), &Default::default(), Some(&window))?;
-    /// # let cmd_pool = plate::CommandPool::new(&device)?;
-    /// # let cmd_buffer = cmd_pool.alloc_cmd_buffer(plate::CommandBufferLevel::PRIMARY)?;
-    /// # let mut swapchain = plate::Swapchain::new(&device, &window)?;
-    /// # let image_index = 0;
-    /// // cmd_buffer.record(.., || {
-    ///     swapchain.begin_render_pass(&cmd_buffer, image_index);
-    ///     // cmd_buffer.draw(..);
-    /// // })?;
-    /// # Ok::<(), Box<dyn std::error::Error>>(())
-    /// ```
-    pub fn begin_render_pass(&self, command_buffer: &CommandBuffer, image_index: usize) {
-        self.render_pass.begin(command_buffer, &self.framebuffers[image_index])
-    }
-
-    /// Ends the Swapchain render pass.
-    ///
-    /// To be used when recording a CommandBuffer after calling
-    /// [`begin_render_pass()`](Self::begin_render_pass()) and the
-    /// desired draw commands.
-    ///
-    /// # Examples
-    /// 
-    /// ```no_run
-    /// # let event_loop = winit::event_loop::EventLoop::new();
-    /// # let window = winit::window::WindowBuilder::new().build(&event_loop)?;
-    /// # let device = plate::Device::new(&Default::default(), &Default::default(), Some(&window))?;
-    /// # let cmd_pool = plate::CommandPool::new(&device)?;
-    /// # let cmd_buffer = cmd_pool.alloc_cmd_buffer(plate::CommandBufferLevel::PRIMARY)?;
-    /// # let mut swapchain = plate::Swapchain::new(&device, &window)?;
-    /// # let image_index = 0;
-    /// // cmd_buffer.record(.., || {
-    ///     // cmd_buffer.draw(..);
-    ///     swapchain.end_render_pass(&cmd_buffer);
-    /// // })?;
-    /// # Ok::<(), Box<dyn std::error::Error>>(())
-    /// ```
-    pub fn end_render_pass(&self, command_buffer: &CommandBuffer) {
-        self.render_pass.end(command_buffer)
     }
 
     /// Acquires the next available swapchain image.
@@ -279,9 +218,8 @@ impl Swapchain {
         vk::SwapchainKHR,
         vk::Extent2D,
         Vec<Image>,
-        Image,
-        RenderPass,
-        Vec<Framebuffer>,
+        Format,
+        Format,
     ), Error> {
         let surface_capabilities = unsafe {
             surface
@@ -379,62 +317,13 @@ impl Swapchain {
             })
             .ok_or(SwapchainError::NoSuitableDepthFormat)?;
 
-        let depth_image = Image::new(
-            device,
-            extent.width,
-            extent.height,
-            depth_format,
-            ImageUsageFlags::DEPTH_STENCIL_ATTACHMENT,
-            ImageAspectFlags::DEPTH,
-        )?;
-
-        let color_attachment = Attachment {
-            format: image_format.format,
-            load_op: AttachmentLoadOp::CLEAR,
-            store_op: AttachmentStoreOp::STORE,
-            initial_layout: ImageLayout::UNDEFINED,
-            final_layout: ImageLayout::PRESENT_SRC_KHR,
-        };
-        let depth_attachment = Attachment {
-            format: depth_format,
-            load_op: AttachmentLoadOp::CLEAR,
-            store_op: AttachmentStoreOp::STORE,
-            initial_layout: ImageLayout::UNDEFINED,
-            final_layout: ImageLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
-        };
-
-        let subpass = SubpassDescription {
-            color_attachments: vec![AttachmentReference { attachment: 0, layout: ImageLayout::COLOR_ATTACHMENT_OPTIMAL }],
-            depth_attachment: Some(AttachmentReference { attachment: 1, layout: ImageLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL }),
-            ..Default::default()
-        };
-
-        let dependency = SubpassDependency {
-            src_subpass: Subpass::EXTERNAL,
-            dst_subpass: Subpass(0),
-            src_stage_mask: PipelineStage::COLOR_ATTACHMENT_OUTPUT | PipelineStage::EARLY_FRAGMENT_TESTS,
-            dst_stage_mask: PipelineStage::COLOR_ATTACHMENT_OUTPUT | PipelineStage::EARLY_FRAGMENT_TESTS,
-            src_access_mask: AccessFlags::NONE,
-            dst_access_mask: AccessFlags::COLOR_ATTACHMENT_WRITE | AccessFlags::DEPTH_STENCIL_ATTACHMENT_WRITE,
-        };
-
-        let render_pass = RenderPass::new(device, &[color_attachment, depth_attachment], &[subpass], &[dependency])?;
-
-        let framebuffers = images
-            .iter()
-            .map(|i| {
-                Framebuffer::from_image_views(device, &render_pass, &[i.view, depth_image.view], extent.width, extent.height)
-            })
-            .collect::<Result<_, _>>()?;
-
         Ok((
             swapchain_loader,
             swapchain,
             extent,
             images,
-            depth_image,
-            render_pass,
-            framebuffers,
+            image_format.format,
+            depth_format,
         ))
     }
 }
