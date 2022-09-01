@@ -330,10 +330,7 @@ impl Framebuffer {
         let attachments = attachments.iter()
             .map(|i| i.view)
             .collect::<Vec<_>>();
-        Self::from_image_views(device, render_pass, &attachments, width, height)
-    }
 
-    pub(crate) fn from_image_views(device: &Arc<Device>, render_pass: &RenderPass, attachments: &[vk::ImageView], width: u32, height: u32) -> Result<Self, Error> {
         let framebuffer_info = vk::FramebufferCreateInfo::builder()
             .render_pass(render_pass.render_pass)
             .attachments(&attachments)
