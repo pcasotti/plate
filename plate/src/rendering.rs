@@ -184,8 +184,10 @@ impl RenderPass {
             .enumerate()
             .map(|(i, _)| {
                 let mut builder = vk::SubpassDescription::builder()
-                    .pipeline_bind_point(vk::PipelineBindPoint::GRAPHICS)
-                    .depth_stencil_attachment(&depth_attachments[i]);
+                    .pipeline_bind_point(vk::PipelineBindPoint::GRAPHICS);
+                if !depth_attachments.is_empty() {
+                    builder = builder.depth_stencil_attachment(&depth_attachments[i])
+                }
                 if !input_attachments[i].is_empty() {
                     builder = builder.input_attachments(&input_attachments[i])
                 }
