@@ -1,5 +1,4 @@
-use plate::VertexDescription;
-use plate::plate_macros;
+use plate::{VertexDescription, plate_macros};
 
 #[repr(C)]
 #[derive(plate_macros::Vertex)]
@@ -15,10 +14,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let window = winit::window::WindowBuilder::new().build(&event_loop)?;
 
     let device = plate::Device::new(&Default::default(), &Default::default(), Some(&window))?;
-    let mut swapchain = plate::swapchain::Swapchain::new(&device, &window)?;
+    let mut e = examples::App::new(&device, &window)?;
     let pipeline = plate::pipeline::Pipeline::new(
         &device,
-        &swapchain.render_pass,
+        &e.render_pass,
         vk_shader_macros::include_glsl!("shaders/vert_buffer/shader.vert"),
         vk_shader_macros::include_glsl!("shaders/vert_buffer/shader.frag"),
         &plate::PipelineParameters {
@@ -50,7 +49,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     winit::event::WindowEvent::CloseRequested => {
                         *control_flow = winit::event_loop::ControlFlow::Exit
                     }
-                    winit::event::WindowEvent::Resized(_) => { swapchain.recreate(&window).unwrap() }
+                    winit::event::WindowEvent::Resized(_) => e.recreate().unwrap(),
                     _ => (),
                 }
             }
@@ -60,14 +59,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 fence.wait().unwrap();
                 fence.reset().unwrap();
 
-                let (i, _) = swapchain.next_image(&acquire_sem).unwrap();
+                let (i, _) = e.swapchain.next_image(&acquire_sem).unwrap();
 
                 cmd_buffer.record(plate::CommandBufferUsageFlags::empty(), || {
-                    swapchain.begin_render_pass(&cmd_buffer, i.try_into().unwrap());
-                    pipeline.bind(&cmd_buffer, swapchain.extent());
+                    e.render_pass.begin(&cmd_buffer, &e.framebuffers[i as usize]);
+                    pipeline.bind(&cmd_buffer, e.swapchain.extent());
                     vert_buffer.bind(&cmd_buffer);
                     cmd_buffer.draw(vertices.len() as u32, 1, 0, 0);
-                    swapchain.end_render_pass(&cmd_buffer);
+                    e.render_pass.end(&cmd_buffer);
                 }).unwrap();
 
                 device.queue_submit(
@@ -78,7 +77,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     Some(&fence),
                 ).unwrap();
 
-                swapchain.present(i, &present_sem).unwrap();
+                e.swapchain.present(i, &present_sem).unwrap();
             }
 
             winit::event::Event::LoopDestroyed => device.wait_idle().unwrap(),
