@@ -23,4 +23,5 @@ cargo-build:
 cargo-test:
   stage: test
   script:
-    - cargo test --doc --verbose
+    - cargo test --verbose
+    - cargo test --examples --verbose
