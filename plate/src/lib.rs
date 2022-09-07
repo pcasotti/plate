@@ -7,7 +7,7 @@
 //! Add the library to your Cargo.toml file:
 //! ```toml
 //! [dependencies]
-//! plate = "0.3"
+//! plate = "0.4"
 //! ```
 
 pub mod buffer;
@@ -22,8 +22,8 @@ pub mod instance;
 pub use instance::*;
 pub mod pipeline;
 pub use pipeline::*;
-pub mod surface;
-pub use surface::Surface;
+pub(crate) mod surface;
+pub(crate) use surface::*;
 pub mod swapchain;
 pub use swapchain::*;
 pub mod command;

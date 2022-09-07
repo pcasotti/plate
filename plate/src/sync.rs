@@ -36,9 +36,7 @@ impl Fence {
     /// ```no_run
     /// # let event_loop = winit::event_loop::EventLoop::new();
     /// # let window = winit::window::WindowBuilder::new().build(&event_loop)?;
-    /// # let instance = plate::Instance::new(Some(&window), &Default::default())?;
-    /// # let surface = plate::Surface::new(&instance, &window)?;
-    /// # let device = plate::Device::new(instance, surface, &Default::default())?;
+    /// # let device = plate::Device::new(&Default::default(), &Default::default(), Some(&window))?;
     /// let fence = plate::Fence::new(&device, plate::FenceFlags::SIGNALED)?;
     /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// ```
@@ -58,9 +56,7 @@ impl Fence {
     /// ```no_run
     /// # let event_loop = winit::event_loop::EventLoop::new();
     /// # let window = winit::window::WindowBuilder::new().build(&event_loop)?;
-    /// # let instance = plate::Instance::new(Some(&window), &Default::default())?;
-    /// # let surface = plate::Surface::new(&instance, &window)?;
-    /// # let device = plate::Device::new(instance, surface, &Default::default())?;
+    /// # let device = plate::Device::new(&Default::default(), &Default::default(), Some(&window))?;
     /// # let fence = plate::Fence::new(&device, plate::FenceFlags::SIGNALED)?;
     /// fence.wait()?;
     /// # Ok::<(), Box<dyn std::error::Error>>(())
@@ -75,9 +71,7 @@ impl Fence {
     /// ```no_run
     /// # let event_loop = winit::event_loop::EventLoop::new();
     /// # let window = winit::window::WindowBuilder::new().build(&event_loop)?;
-    /// # let instance = plate::Instance::new(Some(&window), &Default::default())?;
-    /// # let surface = plate::Surface::new(&instance, &window)?;
-    /// # let device = plate::Device::new(instance, surface, &Default::default())?;
+    /// # let device = plate::Device::new(&Default::default(), &Default::default(), Some(&window))?;
     /// # let fence = plate::Fence::new(&device, plate::FenceFlags::SIGNALED)?;
     /// fence.wait()?;
     /// # Ok::<(), Box<dyn std::error::Error>>(())
@@ -117,9 +111,7 @@ impl Semaphore {
     /// ```no_run
     /// # let event_loop = winit::event_loop::EventLoop::new();
     /// # let window = winit::window::WindowBuilder::new().build(&event_loop)?;
-    /// # let instance = plate::Instance::new(Some(&window), &Default::default())?;
-    /// # let surface = plate::Surface::new(&instance, &window)?;
-    /// # let device = plate::Device::new(instance, surface, &Default::default())?;
+    /// # let device = plate::Device::new(&Default::default(), &Default::default(), Some(&window))?;
     /// let semaphore = plate::Semaphore::new(&device, plate::SemaphoreFlags::empty())?;
     /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// ```

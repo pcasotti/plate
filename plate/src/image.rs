@@ -92,9 +92,7 @@ impl Sampler {
     /// ```no_run
     /// # let event_loop = winit::event_loop::EventLoop::new();
     /// # let window = winit::window::WindowBuilder::new().build(&event_loop)?;
-    /// # let instance = plate::Instance::new(Some(&window), &Default::default())?;
-    /// # let surface = plate::Surface::new(&instance, &window)?;
-    /// # let device = plate::Device::new(instance, surface, &Default::default())?;
+    /// # let device = plate::Device::new(&Default::default(), &Default::default(), Some(&window))?;
     /// let sampler = plate::Sampler::new(&device, &Default::default())?;
     /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// ```
@@ -129,8 +127,10 @@ impl Sampler {
 pub struct Image {
     device: Arc<Device>,
     image: vk::Image,
-    mem: vk::DeviceMemory,
+    mem: Option<vk::DeviceMemory>,
     pub(crate) view: vk::ImageView,
+    /// The format of the image.
+    pub format: Format,
     /// The width of the image.
     pub width: u32,
     /// The height of the image.
@@ -141,8 +141,10 @@ impl Drop for Image {
     fn drop(&mut self) {
         unsafe {
             self.device.destroy_image_view(self.view, None);
-            self.device.destroy_image(self.image, None);
-            self.device.free_memory(self.mem, None);
+            if let Some(mem) = self.mem {
+                self.device.destroy_image(self.image, None);
+                self.device.free_memory(mem, None);
+            }
         }
     }
 }
@@ -155,9 +157,7 @@ impl Image {
     /// ```no_run
     /// # let event_loop = winit::event_loop::EventLoop::new();
     /// # let window = winit::window::WindowBuilder::new().build(&event_loop)?;
-    /// # let instance = plate::Instance::new(Some(&window), &Default::default())?;
-    /// # let surface = plate::Surface::new(&instance, &window)?;
-    /// # let device = plate::Device::new(instance, surface, &Default::default())?;
+    /// # let device = plate::Device::new(&Default::default(), &Default::default(), Some(&window))?;
     /// # let cmd_pool = plate::CommandPool::new(&device)?;
     /// # let (width, height) = (0, 0);
     /// let image = plate::Image::new(
@@ -199,6 +199,31 @@ impl Image {
         let mem = unsafe { device.allocate_memory(&alloc_info, None)? };
         unsafe { device.bind_image_memory(image, mem, 0)? };
 
+        Self::from_vk_image(device, image, width, height, format, image_aspect)
+    }
+
+    pub(crate) fn from_vk_image(device: &Arc<Device>, image: vk::Image, width: u32, height: u32, format: Format, image_aspect: ImageAspectFlags) -> Result<Self, Error> {
+        let view = Self::image_view(device, image, image_aspect, format)?;
+
+        Ok(Self {
+            device: Arc::clone(&device),
+            image,
+            mem: None,
+            view,
+            format,
+            width,
+            height,
+        })
+    }
+
+    pub(crate) fn descriptor_info(&self, sampler: &Sampler, layout: ImageLayout) -> vk::DescriptorImageInfo {
+        *vk::DescriptorImageInfo::builder()
+            .image_layout(layout)
+            .image_view(self.view)
+            .sampler(sampler.sampler)
+    }
+
+    fn image_view(device: &Arc<Device>, image: vk::Image, image_aspect: ImageAspectFlags, format: Format) -> Result<vk::ImageView, Error> {
         let components = vk::ComponentMapping {
             r: vk::ComponentSwizzle::IDENTITY,
             g: vk::ComponentSwizzle::IDENTITY,
@@ -220,23 +245,7 @@ impl Image {
             .components(components)
             .subresource_range(subresource_range);
 
-        let view = unsafe { device.create_image_view(&view_info, None)? };
-
-        Ok(Self {
-            device: Arc::clone(&device),
-            image,
-            mem,
-            view,
-            width,
-            height,
-        })
-    }
-
-    pub(crate) fn descriptor_info(&self, sampler: &Sampler, layout: ImageLayout) -> vk::DescriptorImageInfo {
-        *vk::DescriptorImageInfo::builder()
-            .image_layout(layout)
-            .image_view(self.view)
-            .sampler(sampler.sampler)
+        Ok(unsafe { device.create_image_view(&view_info, None)? })
     }
 }
 
@@ -259,9 +268,7 @@ impl Texture {
     /// ```no_run
     /// # let event_loop = winit::event_loop::EventLoop::new();
     /// # let window = winit::window::WindowBuilder::new().build(&event_loop)?;
-    /// # let instance = plate::Instance::new(Some(&window), &Default::default())?;
-    /// # let surface = plate::Surface::new(&instance, &window)?;
-    /// # let device = plate::Device::new(instance, surface, &Default::default())?;
+    /// # let device = plate::Device::new(&Default::default(), &Default::default(), Some(&window))?;
     /// # let cmd_pool = plate::CommandPool::new(&device)?;
     /// # let (width, height) = (0, 0);
     /// # let data = [0];
@@ -336,6 +343,6 @@ fn transition_layout(device: &Arc<Device>, image: vk::Image, cmd_pool: &CommandP
         ) };
     })?;
 
-    device.queue_submit(device.graphics_queue, &cmd_buffer, PipelineStage::empty(), None, None, None)?;
-    Ok(unsafe { device.queue_wait_idle(device.graphics_queue.queue)? })
+    device.queue_submit(&cmd_buffer, PipelineStage::empty(), None, None, None)?;
+    Ok(unsafe { device.queue_wait_idle(device.queue.queue)? })
 }

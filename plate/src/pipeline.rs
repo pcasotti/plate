@@ -140,14 +140,12 @@ impl Pipeline {
     /// ```no_run
     /// # let event_loop = winit::event_loop::EventLoop::new();
     /// # let window = winit::window::WindowBuilder::new().build(&event_loop)?;
-    /// # let instance = plate::Instance::new(Some(&window), &Default::default())?;
-    /// # let surface = plate::Surface::new(&instance, &window)?;
-    /// # let device = plate::Device::new(instance, surface, &Default::default())?;
-    /// # let mut swapchain = plate::swapchain::Swapchain::new(&device, &window)?;
+    /// # let device = plate::Device::new(&Default::default(), &Default::default(), Some(&window))?;
+    /// # let render_pass = plate::RenderPass::new(&device, &[], &[], &[])?;
     /// # let (vert_code, frag_code) = ([0], [0]);
     /// let pipeline = plate::pipeline::Pipeline::new(
     ///     &device,
-    ///     &swapchain.render_pass(),
+    ///     &render_pass,
     ///     &vert_code,
     ///     &frag_code,
     ///     &Default::default(),
@@ -293,13 +291,12 @@ impl Pipeline {
     /// # struct Vertex(f32);
     /// # let event_loop = winit::event_loop::EventLoop::new();
     /// # let window = winit::window::WindowBuilder::new().build(&event_loop)?;
-    /// # let instance = plate::Instance::new(Some(&window), &Default::default())?;
-    /// # let surface = plate::Surface::new(&instance, &window)?;
-    /// # let device = plate::Device::new(instance, surface, &Default::default())?;
+    /// # let device = plate::Device::new(&Default::default(), &Default::default(), Some(&window))?;
     /// # let cmd_pool = plate::CommandPool::new(&device)?;
     /// # let cmd_buffer = cmd_pool.alloc_cmd_buffer(plate::CommandBufferLevel::PRIMARY)?;
-    /// # let swapchain = plate::swapchain::Swapchain::new(&device, &window)?;
-    /// # let pipeline = plate::pipeline::Pipeline::new(&device, &swapchain.render_pass(), &[], &[],
+    /// # let mut swapchain = plate::swapchain::Swapchain::new(&device, &window)?;
+    /// # let render_pass = plate::RenderPass::new(&device, &[], &[], &[])?;
+    /// # let pipeline = plate::pipeline::Pipeline::new(&device, &render_pass, &[], &[],
     /// # &Default::default())?;
     /// // cmd_buffer.record(.., || {
     ///     pipeline.bind(&cmd_buffer, swapchain.extent());

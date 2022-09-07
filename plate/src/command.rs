@@ -37,16 +37,14 @@ impl CommandPool {
     /// ```no_run
     /// # let event_loop = winit::event_loop::EventLoop::new();
     /// # let window = winit::window::WindowBuilder::new().build(&event_loop)?;
-    /// # let instance = plate::Instance::new(Some(&window), &Default::default())?;
-    /// # let surface = plate::Surface::new(&instance, &window)?;
-    /// # let device = plate::Device::new(instance, surface, &Default::default())?;
+    /// # let device = plate::Device::new(&Default::default(), &Default::default(), Some(&window))?;
     /// let cmd_pool = plate::CommandPool::new(&device)?;
     /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// ```
     pub fn new(device: &Arc<Device>) -> Result<Self, Error> {
         let pool_info = vk::CommandPoolCreateInfo::builder()
             .flags(vk::CommandPoolCreateFlags::RESET_COMMAND_BUFFER)
-            .queue_family_index(device.graphics_queue.family);
+            .queue_family_index(device.queue.family);
 
         let cmd_pool = unsafe { device.create_command_pool(&pool_info, None)? };
 
@@ -63,9 +61,7 @@ impl CommandPool {
     /// ```no_run
     /// # let event_loop = winit::event_loop::EventLoop::new();
     /// # let window = winit::window::WindowBuilder::new().build(&event_loop)?;
-    /// # let instance = plate::Instance::new(Some(&window), &Default::default())?;
-    /// # let surface = plate::Surface::new(&instance, &window)?;
-    /// # let device = plate::Device::new(instance, surface, &Default::default())?;
+    /// # let device = plate::Device::new(&Default::default(), &Default::default(), Some(&window))?;
     /// # let cmd_pool = plate::CommandPool::new(&device)?;
     /// let cmd_buffers = cmd_pool.alloc_cmd_buffers(plate::CommandBufferLevel::PRIMARY, 2)?;
     /// # Ok::<(), Box<dyn std::error::Error>>(())
@@ -89,9 +85,7 @@ impl CommandPool {
     /// ```no_run
     /// # let event_loop = winit::event_loop::EventLoop::new();
     /// # let window = winit::window::WindowBuilder::new().build(&event_loop)?;
-    /// # let instance = plate::Instance::new(Some(&window), &Default::default())?;
-    /// # let surface = plate::Surface::new(&instance, &window)?;
-    /// # let device = plate::Device::new(instance, surface, &Default::default())?;
+    /// # let device = plate::Device::new(&Default::default(), &Default::default(), Some(&window))?;
     /// # let cmd_pool = plate::CommandPool::new(&device)?;
     /// let cmd_buffer = cmd_pool.alloc_cmd_buffer(plate::CommandBufferLevel::PRIMARY)?;
     /// # Ok::<(), Box<dyn std::error::Error>>(())
@@ -125,9 +119,7 @@ impl CommandBuffer {
     /// ```no_run
     /// # let event_loop = winit::event_loop::EventLoop::new();
     /// # let window = winit::window::WindowBuilder::new().build(&event_loop)?;
-    /// # let instance = plate::Instance::new(Some(&window), &Default::default())?;
-    /// # let surface = plate::Surface::new(&instance, &window)?;
-    /// # let device = plate::Device::new(instance, surface, &Default::default())?;
+    /// # let device = plate::Device::new(&Default::default(), &Default::default(), Some(&window))?;
     /// # let cmd_pool = plate::CommandPool::new(&device)?;
     /// # let cmd_buffer = cmd_pool.alloc_cmd_buffer(plate::CommandBufferLevel::PRIMARY)?;
     /// cmd_buffer.record(plate::CommandBufferUsageFlags::empty(), || {
@@ -149,9 +141,7 @@ impl CommandBuffer {
     /// ```no_run
     /// # let event_loop = winit::event_loop::EventLoop::new();
     /// # let window = winit::window::WindowBuilder::new().build(&event_loop)?;
-    /// # let instance = plate::Instance::new(Some(&window), &Default::default())?;
-    /// # let surface = plate::Surface::new(&instance, &window)?;
-    /// # let device = plate::Device::new(instance, surface, &Default::default())?;
+    /// # let device = plate::Device::new(&Default::default(), &Default::default(), Some(&window))?;
     /// # let cmd_pool = plate::CommandPool::new(&device)?;
     /// # let cmd_buffer = cmd_pool.alloc_cmd_buffer(plate::CommandBufferLevel::PRIMARY)?;
     /// cmd_buffer.begin(plate::CommandBufferUsageFlags::empty())?;
@@ -174,9 +164,7 @@ impl CommandBuffer {
     /// ```no_run
     /// # let event_loop = winit::event_loop::EventLoop::new();
     /// # let window = winit::window::WindowBuilder::new().build(&event_loop)?;
-    /// # let instance = plate::Instance::new(Some(&window), &Default::default())?;
-    /// # let surface = plate::Surface::new(&instance, &window)?;
-    /// # let device = plate::Device::new(instance, surface, &Default::default())?;
+    /// # let device = plate::Device::new(&Default::default(), &Default::default(), Some(&window))?;
     /// # let cmd_pool = plate::CommandPool::new(&device)?;
     /// # let cmd_buffer = cmd_pool.alloc_cmd_buffer(plate::CommandBufferLevel::PRIMARY)?;
     /// // cmd_buffer.draw(..);
@@ -197,9 +185,7 @@ impl CommandBuffer {
     /// ```no_run
     /// # let event_loop = winit::event_loop::EventLoop::new();
     /// # let window = winit::window::WindowBuilder::new().build(&event_loop)?;
-    /// # let instance = plate::Instance::new(Some(&window), &Default::default())?;
-    /// # let surface = plate::Surface::new(&instance, &window)?;
-    /// # let device = plate::Device::new(instance, surface, &Default::default())?;
+    /// # let device = plate::Device::new(&Default::default(), &Default::default(), Some(&window))?;
     /// # let cmd_pool = plate::CommandPool::new(&device)?;
     /// # let cmd_buffer = cmd_pool.alloc_cmd_buffer(plate::CommandBufferLevel::PRIMARY)?;
     /// cmd_buffer.record(plate::CommandBufferUsageFlags::empty(), || {
@@ -220,9 +206,7 @@ impl CommandBuffer {
     /// ```no_run
     /// # let event_loop = winit::event_loop::EventLoop::new();
     /// # let window = winit::window::WindowBuilder::new().build(&event_loop)?;
-    /// # let instance = plate::Instance::new(Some(&window), &Default::default())?;
-    /// # let surface = plate::Surface::new(&instance, &window)?;
-    /// # let device = plate::Device::new(instance, surface, &Default::default())?;
+    /// # let device = plate::Device::new(&Default::default(), &Default::default(), Some(&window))?;
     /// # let cmd_pool = plate::CommandPool::new(&device)?;
     /// # let cmd_buffer = cmd_pool.alloc_cmd_buffer(plate::CommandBufferLevel::PRIMARY)?;
     /// cmd_buffer.record(plate::CommandBufferUsageFlags::empty(), || {

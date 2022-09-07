@@ -1,14 +1,12 @@
 [package]
 name = "plate"
-version = "0.3.1"
+version = "0.4.0"
 edition = "2021"
 description = "Rust library for writing simpler Vulkan code"
 repository = "https://github.com/pcasotti/plate"
 license = "MIT"
 readme = "../README.md"
 keywords = ["graphics", "rendering", "vulkan"]
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [features]
 default = ["macros"]

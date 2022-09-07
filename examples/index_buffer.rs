@@ -1,37 +1,23 @@
-use plate::VertexDescription;
+use plate::{VertexDescription, plate_macros};
 
 #[repr(C)]
+#[derive(plate_macros::Vertex)]
 struct Vert {
+    #[vertex(loc = 0, format = "R32G32_SFLOAT")]
     pos: glam::Vec2,
+    #[vertex(loc = 1, format = "R32G32B32_SFLOAT")]
     color: glam::Vec3,
-}
-
-impl VertexDescription for Vert {
-    fn binding_descriptions() -> Vec<plate::VertexBindingDescription> {
-        vec![
-            plate::VertexBindingDescription::new(0, std::mem::size_of::<Self>() as u32, plate::InputRate::VERTEX)
-        ]
-    }
-
-    fn attribute_descriptions() -> Vec<plate::VertexAttributeDescription> {
-        vec![
-            plate::VertexAttributeDescription::new(0, 0, memoffset::offset_of!(Self, pos) as u32, plate::Format::R32G32_SFLOAT),
-            plate::VertexAttributeDescription::new(0, 1, memoffset::offset_of!(Self, color) as u32, plate::Format::R32G32B32_SFLOAT),
-        ]
-    }
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let event_loop = winit::event_loop::EventLoop::new();
     let window = winit::window::WindowBuilder::new().build(&event_loop)?;
 
-    let instance = plate::Instance::new(Some(&window), &Default::default())?;
-    let surface = plate::Surface::new(&instance, &window)?;
-    let device = plate::Device::new(instance, surface, &Default::default())?;
-    let mut swapchain = plate::swapchain::Swapchain::new(&device, &window)?;
+    let device = plate::Device::new(&Default::default(), &Default::default(), Some(&window))?;
+    let mut e = examples::App::new(&device, &window)?;
     let pipeline = plate::pipeline::Pipeline::new(
         &device,
-        swapchain.render_pass(),
+        &e.render_pass,
         vk_shader_macros::include_glsl!("shaders/index_buffer/shader.vert"),
         vk_shader_macros::include_glsl!("shaders/index_buffer/shader.frag"),
         &plate::PipelineParameters {
@@ -67,7 +53,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     winit::event::WindowEvent::CloseRequested => {
                         *control_flow = winit::event_loop::ControlFlow::Exit
                     }
-                    winit::event::WindowEvent::Resized(_) => { swapchain.recreate(&window).unwrap() }
+                    winit::event::WindowEvent::Resized(_) => e.recreate().unwrap(),
                     _ => (),
                 }
             }
@@ -77,19 +63,18 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 fence.wait().unwrap();
                 fence.reset().unwrap();
 
-                let (i, _) = swapchain.next_image(&acquire_sem).unwrap();
+                let (i, _) = e.swapchain.next_image(&acquire_sem).unwrap();
 
                 cmd_buffer.record(plate::CommandBufferUsageFlags::empty(), || {
-                    swapchain.begin_render_pass(&cmd_buffer, i.try_into().unwrap());
-                    pipeline.bind(&cmd_buffer, swapchain.extent());
+                    e.render_pass.begin(&cmd_buffer, &e.framebuffers[i as usize]);
+                    pipeline.bind(&cmd_buffer, e.swapchain.extent());
                     vert_buffer.bind(&cmd_buffer);
                     index_buffer.bind(&cmd_buffer);
                     cmd_buffer.draw_indexed(indices.len() as u32, 1, 0, 0, 0);
-                    swapchain.end_render_pass(&cmd_buffer);
+                    e.render_pass.end(&cmd_buffer);
                 }).unwrap();
 
                 device.queue_submit(
-                    device.graphics_queue,
                     &cmd_buffer,
                     plate::PipelineStage::COLOR_ATTACHMENT_OUTPUT,
                     Some(&acquire_sem),
@@ -97,7 +82,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     Some(&fence),
                 ).unwrap();
 
-                swapchain.present(i, &present_sem).unwrap();
+                e.swapchain.present(i, &present_sem).unwrap();
             }
 
             winit::event::Event::LoopDestroyed => device.wait_idle().unwrap(),

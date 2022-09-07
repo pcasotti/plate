@@ -3,9 +3,9 @@ use ash::{extensions::khr, vk};
 use crate::{Instance, Error};
 
 /// An abstraction of the window to be used by Vulkan.
-pub struct Surface {
-    pub(crate) surface_loader: khr::Surface,
-    pub(crate) surface: vk::SurfaceKHR,
+pub(crate) struct Surface {
+    pub surface_loader: khr::Surface,
+    pub surface: vk::SurfaceKHR,
 }
 
 impl Drop for Surface {
@@ -17,17 +17,6 @@ impl Drop for Surface {
 }
 
 impl Surface {
-    /// Creates a Surface used to present to a window.
-    ///
-    /// # Examples
-    ///
-    /// ```no_run
-    /// # let event_loop = winit::event_loop::EventLoop::new();
-    /// # let window = winit::window::WindowBuilder::new().build(&event_loop)?;
-    /// # let instance = plate::Instance::new(Some(&window), &Default::default())?;
-    /// let surface = plate::Surface::new(&instance, &window)?;
-    /// # Ok::<(), Box<dyn std::error::Error>>(())
-    /// ```
     pub fn new(
         instance: &Instance,
         window: &winit::window::Window,

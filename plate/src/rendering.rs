@@ -33,27 +33,27 @@ pub struct AttachmentReference {
 }
 
 /// Describes the attachments of a subpass.
-pub struct SubpassDescription {
+pub struct SubpassDescription<'a> {
     /// Defines the input attachments.
-    pub input_attachments: Vec<AttachmentReference>,
+    pub input_attachments: &'a [AttachmentReference],
     /// Defines the color attachments.
-    pub color_attachments: Vec<AttachmentReference>,
+    pub color_attachments: &'a [AttachmentReference],
     /// Defines the depth attachment.
     pub depth_attachment: Option<AttachmentReference>,
     /// The indices of attachments to preserve throughout the subpass.
-    pub preserve_attachments: Vec<u32>,
+    pub preserve_attachments: &'a [u32],
     /// Defines the resolve attachments.
-    pub resolve_attachments: Vec<AttachmentReference>,
+    pub resolve_attachments: &'a [AttachmentReference],
 }
 
-impl Default for SubpassDescription {
+impl<'a> Default for SubpassDescription<'a> {
     fn default() -> Self {
         Self {
-            input_attachments: vec![],
-            color_attachments: vec![],
+            input_attachments: &[],
+            color_attachments: &[],
             depth_attachment: None,
-            preserve_attachments: vec![],
-            resolve_attachments: vec![],
+            preserve_attachments: &[],
+            resolve_attachments: &[],
         }
     }
 }
@@ -105,9 +105,7 @@ impl RenderPass {
     /// ```no_run
     /// # let event_loop = winit::event_loop::EventLoop::new();
     /// # let window = winit::window::WindowBuilder::new().build(&event_loop)?;
-    /// # let instance = plate::Instance::new(Some(&window), &Default::default())?;
-    /// # let surface = plate::Surface::new(&instance, &window)?;
-    /// # let device = plate::Device::new(instance, surface, &Default::default())?;
+    /// # let device = plate::Device::new(&Default::default(), &Default::default(), Some(&window))?;
     /// # let attachments = [];
     /// # let subpasses = [];
     /// # let dependencies = [];
@@ -186,8 +184,10 @@ impl RenderPass {
             .enumerate()
             .map(|(i, _)| {
                 let mut builder = vk::SubpassDescription::builder()
-                    .pipeline_bind_point(vk::PipelineBindPoint::GRAPHICS)
-                    .depth_stencil_attachment(&depth_attachments[i]);
+                    .pipeline_bind_point(vk::PipelineBindPoint::GRAPHICS);
+                if !depth_attachments.is_empty() {
+                    builder = builder.depth_stencil_attachment(&depth_attachments[i])
+                }
                 if !input_attachments[i].is_empty() {
                     builder = builder.input_attachments(&input_attachments[i])
                 }
@@ -241,9 +241,7 @@ impl RenderPass {
     /// ```no_run
     /// # let event_loop = winit::event_loop::EventLoop::new();
     /// # let window = winit::window::WindowBuilder::new().build(&event_loop)?;
-    /// # let instance = plate::Instance::new(Some(&window), &Default::default())?;
-    /// # let surface = plate::Surface::new(&instance, &window)?;
-    /// # let device = plate::Device::new(instance, surface, &Default::default())?;
+    /// # let device = plate::Device::new(&Default::default(), &Default::default(), Some(&window))?;
     /// # let cmd_pool = plate::CommandPool::new(&device)?;
     /// # let cmd_buffer = cmd_pool.alloc_cmd_buffer(plate::CommandBufferLevel::PRIMARY)?;
     /// # let render_pass = plate::RenderPass::new(&device, &[], &[], &[])?;
@@ -279,9 +277,7 @@ impl RenderPass {
     /// ```no_run
     /// # let event_loop = winit::event_loop::EventLoop::new();
     /// # let window = winit::window::WindowBuilder::new().build(&event_loop)?;
-    /// # let instance = plate::Instance::new(Some(&window), &Default::default())?;
-    /// # let surface = plate::Surface::new(&instance, &window)?;
-    /// # let device = plate::Device::new(instance, surface, &Default::default())?;
+    /// # let device = plate::Device::new(&Default::default(), &Default::default(), Some(&window))?;
     /// # let cmd_pool = plate::CommandPool::new(&device)?;
     /// # let cmd_buffer = cmd_pool.alloc_cmd_buffer(plate::CommandBufferLevel::PRIMARY)?;
     /// # let render_pass = plate::RenderPass::new(&device, &[], &[], &[])?;
@@ -319,9 +315,7 @@ impl Framebuffer {
     /// ```no_run
     /// # let event_loop = winit::event_loop::EventLoop::new();
     /// # let window = winit::window::WindowBuilder::new().build(&event_loop)?;
-    /// # let instance = plate::Instance::new(Some(&window), &Default::default())?;
-    /// # let surface = plate::Surface::new(&instance, &window)?;
-    /// # let device = plate::Device::new(instance, surface, &Default::default())?;
+    /// # let device = plate::Device::new(&Default::default(), &Default::default(), Some(&window))?;
     /// # let image = plate::Image::new(&device, 0, 0, plate::Format::UNDEFINED,
     /// # plate::ImageUsageFlags::empty(), plate::ImageAspectFlags::empty())?;
     /// # let render_pass = plate::RenderPass::new(&device, &[], &[], &[])?;
@@ -338,10 +332,7 @@ impl Framebuffer {
         let attachments = attachments.iter()
             .map(|i| i.view)
             .collect::<Vec<_>>();
-        Self::from_image_views(device, render_pass, &attachments, width, height)
-    }
 
-    pub(crate) fn from_image_views(device: &Arc<Device>, render_pass: &RenderPass, attachments: &[vk::ImageView], width: u32, height: u32) -> Result<Self, Error> {
         let framebuffer_info = vk::FramebufferCreateInfo::builder()
             .render_pass(render_pass.render_pass)
             .attachments(&attachments)

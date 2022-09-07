@@ -10,6 +10,9 @@ pub use vk::SharingMode as SharingMode;
 /// A struct to hold a vertex buffer.
 pub struct VertexBuffer<T>(Buffer<T>);
 
+unsafe impl<T> Send for VertexBuffer<T> {}
+unsafe impl<T> Sync for VertexBuffer<T> {}
+
 impl<T> VertexBuffer<T> {
     /// Creates a new VertexBuffer with data from a slice.
     /// 
@@ -19,9 +22,7 @@ impl<T> VertexBuffer<T> {
     /// struct Vertex(f32);
     /// # let event_loop = winit::event_loop::EventLoop::new();
     /// # let window = winit::window::WindowBuilder::new().build(&event_loop)?;
-    /// # let instance = plate::Instance::new(Some(&window), &Default::default())?;
-    /// # let surface = plate::Surface::new(&instance, &window)?;
-    /// # let device = plate::Device::new(instance, surface, &Default::default())?;
+    /// # let device = plate::Device::new(&Default::default(), &Default::default(), Some(&window))?;
     /// # let cmd_pool = plate::CommandPool::new(&device)?;
     /// let vertices = [Vertex(0.0), Vertex(1.0)];
     /// let vertex_buffer = plate::VertexBuffer::new(&device, &vertices, &cmd_pool)?;
@@ -66,9 +67,7 @@ impl<T> VertexBuffer<T> {
     /// # struct Vertex(f32);
     /// # let event_loop = winit::event_loop::EventLoop::new();
     /// # let window = winit::window::WindowBuilder::new().build(&event_loop)?;
-    /// # let instance = plate::Instance::new(Some(&window), &Default::default())?;
-    /// # let surface = plate::Surface::new(&instance, &window)?;
-    /// # let device = plate::Device::new(instance, surface, &Default::default())?;
+    /// # let device = plate::Device::new(&Default::default(), &Default::default(), Some(&window))?;
     /// # let cmd_pool = plate::CommandPool::new(&device)?;
     /// # let cmd_buffer = cmd_pool.alloc_cmd_buffer(plate::CommandBufferLevel::PRIMARY)?;
     /// # let vertices = [Vertex(0.0), Vertex(1.0)];
@@ -86,9 +85,12 @@ impl<T> VertexBuffer<T> {
 }
 
 /// A struct to hold a index buffer.
-pub struct IndexBuffer<T>(Buffer<T>);
+pub struct IndexBuffer(Buffer<u32>);
 
-impl<T> IndexBuffer<T> {
+unsafe impl Send for IndexBuffer {}
+unsafe impl Sync for IndexBuffer {}
+
+impl IndexBuffer {
     /// Creates a new IndexBuffer with data from a slice.
     /// 
     /// # Examples
@@ -96,16 +98,14 @@ impl<T> IndexBuffer<T> {
     /// ```no_run
     /// # let event_loop = winit::event_loop::EventLoop::new();
     /// # let window = winit::window::WindowBuilder::new().build(&event_loop)?;
-    /// # let instance = plate::Instance::new(Some(&window), &Default::default())?;
-    /// # let surface = plate::Surface::new(&instance, &window)?;
-    /// # let device = plate::Device::new(instance, surface, &Default::default())?;
+    /// # let device = plate::Device::new(&Default::default(), &Default::default(), Some(&window))?;
     /// # let cmd_pool = plate::CommandPool::new(&device)?;
     /// let indices = [0, 1, 2];
     /// let index_buffer = plate::IndexBuffer::new(&device, &indices, &cmd_pool)?;
     /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// ```
-    pub fn new(device: &Arc<Device>, data: &[T], cmd_pool: &CommandPool) -> Result<Self, Error> {
-        let size = (mem::size_of::<T>() * data.len()) as u64;
+    pub fn new(device: &Arc<Device>, data: &[u32], cmd_pool: &CommandPool) -> Result<Self, Error> {
+        let size = (mem::size_of::<u32>() * data.len()) as u64;
         let staging = Buffer::new(
             device,
             data.len(),
@@ -142,9 +142,7 @@ impl<T> IndexBuffer<T> {
     /// ```no_run
     /// # let event_loop = winit::event_loop::EventLoop::new();
     /// # let window = winit::window::WindowBuilder::new().build(&event_loop)?;
-    /// # let instance = plate::Instance::new(Some(&window), &Default::default())?;
-    /// # let surface = plate::Surface::new(&instance, &window)?;
-    /// # let device = plate::Device::new(instance, surface, &Default::default())?;
+    /// # let device = plate::Device::new(&Default::default(), &Default::default(), Some(&window))?;
     /// # let cmd_pool = plate::CommandPool::new(&device)?;
     /// # let cmd_buffer = cmd_pool.alloc_cmd_buffer(plate::CommandBufferLevel::PRIMARY)?;
     /// # let indices = [0, 1, 2];
@@ -175,6 +173,9 @@ pub struct MappedBuffer<T> {
     mapped: *mut ffi::c_void,
 }
 
+unsafe impl<T> Send for MappedBuffer<T> {}
+unsafe impl<T> Sync for MappedBuffer<T> {}
+
 impl<T> MappedBuffer<T> {
     /// Unmaps the memory from the host and returns the inner [`Buffer`].
     /// 
@@ -183,9 +184,7 @@ impl<T> MappedBuffer<T> {
     /// ```no_run
     /// # let event_loop = winit::event_loop::EventLoop::new();
     /// # let window = winit::window::WindowBuilder::new().build(&event_loop)?;
-    /// # let instance = plate::Instance::new(Some(&window), &Default::default())?;
-    /// # let surface = plate::Surface::new(&instance, &window)?;
-    /// # let device = plate::Device::new(instance, surface, &Default::default())?;
+    /// # let device = plate::Device::new(&Default::default(), &Default::default(), Some(&window))?;
     /// # let buffer: plate::Buffer<u32> = plate::Buffer::new( // ..
     ///     # &device,
     ///     # 2,
@@ -218,9 +217,7 @@ impl<T> MappedBuffer<T> {
     /// ```no_run
     /// # let event_loop = winit::event_loop::EventLoop::new();
     /// # let window = winit::window::WindowBuilder::new().build(&event_loop)?;
-    /// # let instance = plate::Instance::new(Some(&window), &Default::default())?;
-    /// # let surface = plate::Surface::new(&instance, &window)?;
-    /// # let device = plate::Device::new(instance, surface, &Default::default())?;
+    /// # let device = plate::Device::new(&Default::default(), &Default::default(), Some(&window))?;
     /// # let buffer: plate::Buffer<u32> = plate::Buffer::new( // ..
     ///     # &device,
     ///     # 2,
@@ -252,9 +249,7 @@ impl<T> MappedBuffer<T> {
     /// ```no_run
     /// # let event_loop = winit::event_loop::EventLoop::new();
     /// # let window = winit::window::WindowBuilder::new().build(&event_loop)?;
-    /// # let instance = plate::Instance::new(Some(&window), &Default::default())?;
-    /// # let surface = plate::Surface::new(&instance, &window)?;
-    /// # let device = plate::Device::new(instance, surface, &Default::default())?;
+    /// # let device = plate::Device::new(&Default::default(), &Default::default(), Some(&window))?;
     /// let buffer: plate::Buffer<u32> = plate::Buffer::new(&device, 4, // ..
     ///     # plate::BufferUsageFlags::UNIFORM_BUFFER,
     ///     # plate::SharingMode::EXCLUSIVE,
@@ -288,9 +283,7 @@ impl<T> MappedBuffer<T> {
     /// ```no_run
     /// # let event_loop = winit::event_loop::EventLoop::new();
     /// # let window = winit::window::WindowBuilder::new().build(&event_loop)?;
-    /// # let instance = plate::Instance::new(Some(&window), &Default::default())?;
-    /// # let surface = plate::Surface::new(&instance, &window)?;
-    /// # let device = plate::Device::new(instance, surface, &Default::default())?;
+    /// # let device = plate::Device::new(&Default::default(), &Default::default(), Some(&window))?;
     /// let buffer: plate::Buffer<u32> = plate::Buffer::new(&device, 4, // ..
     ///     # plate::BufferUsageFlags::UNIFORM_BUFFER,
     ///     # plate::SharingMode::EXCLUSIVE,
@@ -313,9 +306,7 @@ impl<T> MappedBuffer<T> {
     /// ```no_run
     /// # let event_loop = winit::event_loop::EventLoop::new();
     /// # let window = winit::window::WindowBuilder::new().build(&event_loop)?;
-    /// # let instance = plate::Instance::new(Some(&window), &Default::default())?;
-    /// # let surface = plate::Surface::new(&instance, &window)?;
-    /// # let device = plate::Device::new(instance, surface, &Default::default())?;
+    /// # let device = plate::Device::new(&Default::default(), &Default::default(), Some(&window))?;
     /// let buffer: plate::Buffer<u32> = plate::Buffer::new(&device, 4, // ..
     ///     # plate::BufferUsageFlags::UNIFORM_BUFFER,
     ///     # plate::SharingMode::EXCLUSIVE,
@@ -348,6 +339,9 @@ pub struct Buffer<T> {
     marker: marker::PhantomData<T>,
 }
 
+unsafe impl<T> Send for Buffer<T> {}
+unsafe impl<T> Sync for Buffer<T> {}
+
 impl<T> Drop for Buffer<T> {
     fn drop(&mut self) {
         unsafe {
@@ -365,9 +359,7 @@ impl<T> Buffer<T> {
     /// ```no_run
     /// # let event_loop = winit::event_loop::EventLoop::new();
     /// # let window = winit::window::WindowBuilder::new().build(&event_loop)?;
-    /// # let instance = plate::Instance::new(Some(&window), &Default::default())?;
-    /// # let surface = plate::Surface::new(&instance, &window)?;
-    /// # let device = plate::Device::new(instance, surface, &Default::default())?;
+    /// # let device = plate::Device::new(&Default::default(), &Default::default(), Some(&window))?;
     /// // Create a uniform buffer with capacity of 2 instances
     /// let buffer: plate::Buffer<u32> = plate::Buffer::new(
     ///     &device,
@@ -423,9 +415,7 @@ impl<T> Buffer<T> {
     /// ```no_run
     /// # let event_loop = winit::event_loop::EventLoop::new();
     /// # let window = winit::window::WindowBuilder::new().build(&event_loop)?;
-    /// # let instance = plate::Instance::new(Some(&window), &Default::default())?;
-    /// # let surface = plate::Surface::new(&instance, &window)?;
-    /// # let device = plate::Device::new(instance, surface, &Default::default())?;
+    /// # let device = plate::Device::new(&Default::default(), &Default::default(), Some(&window))?;
     /// let buffer: plate::Buffer<u32> = plate::Buffer::new( // ..
     ///     # &device,
     ///     # 2,
@@ -466,8 +456,8 @@ impl<T> Buffer<T> {
             };
         })?;
 
-        self.device.queue_submit(self.device.graphics_queue, &command_buffer, PipelineStage::empty(), None, None, None)?;
-        Ok(unsafe { self.device.queue_wait_idle(self.device.graphics_queue.queue)? })
+        self.device.queue_submit(&command_buffer, PipelineStage::empty(), None, None, None)?;
+        Ok(unsafe { self.device.queue_wait_idle(self.device.queue.queue)? })
     }
 
     pub(crate) fn copy_to_image(&self, image: vk::Image, width: u32, height: u32, cmd_pool: &CommandPool) -> Result<(), Error> {
@@ -493,8 +483,8 @@ impl<T> Buffer<T> {
             unsafe { self.device.cmd_copy_buffer_to_image(*cmd_buffer, self.buffer, image, vk::ImageLayout::TRANSFER_DST_OPTIMAL, &[*region]) };
         })?;
 
-        self.device.queue_submit(self.device.graphics_queue, &cmd_buffer, PipelineStage::empty(), None, None, None)?;
-        Ok(unsafe { self.device.queue_wait_idle(self.device.graphics_queue.queue)? })
+        self.device.queue_submit(&cmd_buffer, PipelineStage::empty(), None, None, None)?;
+        Ok(unsafe { self.device.queue_wait_idle(self.device.queue.queue)? })
     }
 
     pub(crate) fn descriptor_info(&self, offset: usize, range: usize) -> vk::DescriptorBufferInfo {
