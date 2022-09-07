@@ -33,27 +33,27 @@ pub struct AttachmentReference {
 }
 
 /// Describes the attachments of a subpass.
-pub struct SubpassDescription {
+pub struct SubpassDescription<'a> {
     /// Defines the input attachments.
-    pub input_attachments: Vec<AttachmentReference>,
+    pub input_attachments: &'a [AttachmentReference],
     /// Defines the color attachments.
-    pub color_attachments: Vec<AttachmentReference>,
+    pub color_attachments: &'a [AttachmentReference],
     /// Defines the depth attachment.
     pub depth_attachment: Option<AttachmentReference>,
     /// The indices of attachments to preserve throughout the subpass.
-    pub preserve_attachments: Vec<u32>,
+    pub preserve_attachments: &'a [u32],
     /// Defines the resolve attachments.
-    pub resolve_attachments: Vec<AttachmentReference>,
+    pub resolve_attachments: &'a [AttachmentReference],
 }
 
-impl Default for SubpassDescription {
+impl<'a> Default for SubpassDescription<'a> {
     fn default() -> Self {
         Self {
-            input_attachments: vec![],
-            color_attachments: vec![],
+            input_attachments: &[],
+            color_attachments: &[],
             depth_attachment: None,
-            preserve_attachments: vec![],
-            resolve_attachments: vec![],
+            preserve_attachments: &[],
+            resolve_attachments: &[],
         }
     }
 }

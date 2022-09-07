@@ -37,7 +37,7 @@ impl App {
         };
 
         let subpass = plate::SubpassDescription {
-            color_attachments: vec![plate::AttachmentReference { attachment: 0, layout: plate::ImageLayout::COLOR_ATTACHMENT_OPTIMAL }],
+            color_attachments: &[plate::AttachmentReference { attachment: 0, layout: plate::ImageLayout::COLOR_ATTACHMENT_OPTIMAL }],
             depth_attachment: Some(plate::AttachmentReference { attachment: 1, layout: plate::ImageLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL }),
             ..Default::default()
         };
