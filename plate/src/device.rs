@@ -51,9 +51,9 @@ impl ops::Deref for Device {
 impl Device {
     /// Creates a Device and returns an [`Arc`] pointing to it.
     ///
-    /// The Device takes ownership of an [`Instance`] and a [`Surface`]. The [`DeviceParameters`]
-    /// are used to mach a physical device with the required features. If no device is from the
-    /// preferred [`DeviceType`] will default to whatever is available.
+    /// The [`DeviceParameters`] are used to find a physical device with the required features. If
+    /// no device is from the preferred [`DeviceType`], it will default to whatever is available.
+    /// The [`InstanceParameters`] are used to create the instance.
     ///
     /// # Exmaple
     ///
