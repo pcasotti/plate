@@ -222,15 +222,19 @@ impl Pipeline {
             .sample_shading_enable(false)
             .rasterization_samples(vk::SampleCountFlags::TYPE_1);
 
-        let color_blend_attachments = [*vk::PipelineColorBlendAttachmentState::builder()
-            .blend_enable(true)
-            .src_color_blend_factor(vk::BlendFactor::SRC_ALPHA)
-            .dst_color_blend_factor(vk::BlendFactor::ONE_MINUS_SRC_ALPHA)
-            .color_blend_op(vk::BlendOp::ADD)
-            .src_alpha_blend_factor(vk::BlendFactor::SRC_ALPHA)
-            .dst_alpha_blend_factor(vk::BlendFactor::ONE_MINUS_SRC_ALPHA)
-            .alpha_blend_op(vk::BlendOp::ADD)
-            .color_write_mask(vk::ColorComponentFlags::RGBA)];
+        let color_blend_attachments = (0..render_pass.attachment_counts[0]).into_iter()
+            .map(|_| {
+                *vk::PipelineColorBlendAttachmentState::builder()
+                    .blend_enable(true)
+                    .src_color_blend_factor(vk::BlendFactor::SRC_ALPHA)
+                    .dst_color_blend_factor(vk::BlendFactor::ONE_MINUS_SRC_ALPHA)
+                    .color_blend_op(vk::BlendOp::ADD)
+                    .src_alpha_blend_factor(vk::BlendFactor::SRC_ALPHA)
+                    .dst_alpha_blend_factor(vk::BlendFactor::ONE_MINUS_SRC_ALPHA)
+                    .alpha_blend_op(vk::BlendOp::ADD)
+                    .color_write_mask(vk::ColorComponentFlags::RGBA)
+            })
+            .collect::<Vec<_>>();
 
         let color_blend =
             vk::PipelineColorBlendStateCreateInfo::builder().attachments(&color_blend_attachments);
