@@ -199,16 +199,16 @@ impl Image {
         let mem = unsafe { device.allocate_memory(&alloc_info, None)? };
         unsafe { device.bind_image_memory(image, mem, 0)? };
 
-        Self::from_vk_image(device, image, width, height, format, image_aspect)
+        Self::from_vk_image(device, image, Some(mem), width, height, format, image_aspect)
     }
 
-    pub(crate) fn from_vk_image(device: &Arc<Device>, image: vk::Image, width: u32, height: u32, format: Format, image_aspect: ImageAspectFlags) -> Result<Self, Error> {
+    pub(crate) fn from_vk_image(device: &Arc<Device>, image: vk::Image, mem: Option<vk::DeviceMemory>, width: u32, height: u32, format: Format, image_aspect: ImageAspectFlags) -> Result<Self, Error> {
         let view = Self::image_view(device, image, image_aspect, format)?;
 
         Ok(Self {
             device: Arc::clone(&device),
             image,
-            mem: None,
+            mem,
             view,
             format,
             width,
