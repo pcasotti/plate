@@ -170,7 +170,7 @@ impl Image {
     /// )?;
     /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// ```
-    pub fn new(device: &Arc<Device>, width: u32, height: u32, format: Format, usage: ImageUsageFlags, image_aspect: ImageAspectFlags) -> Result<Self, Error> {
+    pub fn new(device: &Arc<Device>, width: u32, height: u32, format: Format, layout: ImageLayout, usage: ImageUsageFlags, image_aspect: ImageAspectFlags) -> Result<Self, Error> {
         let image_info = vk::ImageCreateInfo::builder()
             .image_type(vk::ImageType::TYPE_2D)
             .extent(vk::Extent3D {
@@ -182,7 +182,7 @@ impl Image {
             .array_layers(1)
             .format(format)
             .tiling(vk::ImageTiling::OPTIMAL)
-            .initial_layout(vk::ImageLayout::UNDEFINED)
+            .initial_layout(ImageLayout::UNDEFINED)
             .usage(usage)
             .sharing_mode(vk::SharingMode::EXCLUSIVE)
             .samples(vk::SampleCountFlags::TYPE_1);
@@ -198,6 +198,11 @@ impl Image {
 
         let mem = unsafe { device.allocate_memory(&alloc_info, None)? };
         unsafe { device.bind_image_memory(image, mem, 0)? };
+
+        let cmd_pool = CommandPool::new(device)?;
+        if layout != ImageLayout::UNDEFINED {
+            transition_layout(device, image, &cmd_pool, vk::ImageLayout::UNDEFINED, layout)?;
+        }
 
         Self::from_vk_image(device, image, Some(mem), width, height, format, image_aspect)
     }
@@ -293,6 +298,7 @@ impl Texture {
             width,
             height,
             Format::R8G8B8A8_SRGB,
+            ImageLayout::UNDEFINED,
             ImageUsageFlags::TRANSFER_DST | ImageUsageFlags::SAMPLED,
             ImageAspectFlags::COLOR,
         )?;
@@ -309,13 +315,13 @@ fn transition_layout(device: &Arc<Device>, image: vk::Image, cmd_pool: &CommandP
     let (src_access, src_stage) = match old_layout {
         vk::ImageLayout::UNDEFINED => (vk::AccessFlags::empty(), vk::PipelineStageFlags::TOP_OF_PIPE),
         vk::ImageLayout::TRANSFER_DST_OPTIMAL => (vk::AccessFlags::TRANSFER_WRITE, vk::PipelineStageFlags::TRANSFER),
-        _ => unimplemented!(),
+        _ => (vk::AccessFlags::empty(), vk::PipelineStageFlags::TOP_OF_PIPE),
     };
 
     let (dst_access, dst_stage) = match new_layout {
         vk::ImageLayout::TRANSFER_DST_OPTIMAL => (vk::AccessFlags::TRANSFER_WRITE, vk::PipelineStageFlags::TRANSFER),
         vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL => (vk::AccessFlags::SHADER_READ, vk::PipelineStageFlags::FRAGMENT_SHADER),
-        _ => unimplemented!(),
+        _ => (vk::AccessFlags::empty(), vk::PipelineStageFlags::BOTTOM_OF_PIPE),
     };
 
     let cmd_buffer = cmd_pool.alloc_cmd_buffer(CommandBufferLevel::PRIMARY)?;
