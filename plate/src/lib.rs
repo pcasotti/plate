@@ -7,7 +7,7 @@
 //! Add the library to your Cargo.toml file:
 //! ```toml
 //! [dependencies]
-//! plate = "0.4"
+//! plate = "0.5"
 //! ```
 
 pub mod buffer;

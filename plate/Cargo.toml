@@ -1,6 +1,6 @@
 [package]
 name = "plate"
-version = "0.4.1"
+version = "0.5.0"
 edition = "2021"
 description = "Rust library for writing simpler Vulkan code"
 repository = "https://github.com/pcasotti/plate"

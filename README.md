@@ -12,7 +12,7 @@ Rust library for writing simpler Vulkan code
 [build-badge]: https://img.shields.io/gitlab/pipeline-status/pcasotti/plate
 [build-url]: https://gitlab.com/pcasotti/plate/-/pipelines
 [docs-badge]: https://img.shields.io/docsrs/plate
-[docs-url]: https://docs.rs/plate/0.4.1/plate/
+[docs-url]: https://docs.rs/plate/0.5.0/plate/
 [license-badge]: https://img.shields.io/crates/l/plate
 [license-url]: https://github.com/pcasotti/plate/blob/main/LICENSE
 
@@ -21,7 +21,7 @@ Rust library for writing simpler Vulkan code
 Add the library to your Cargo.toml file:
 ```toml
 [dependencies]
-plate = "0.4"
+plate = "0.5"
 ```
 
 ## Example
