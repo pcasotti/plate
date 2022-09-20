@@ -105,7 +105,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let image = plate::Texture::new(&device, &cmd_pool, tex.width(), tex.height(), &tex.to_rgba8().into_raw())?;
     let sampler = plate::Sampler::new(
         &device,
-        &plate::SamplerParams {
+        &plate::SamplerParameters {
             address_mode: plate::SamplerAddress::CLAMP_TO_EDGE,
             ..Default::default()
         },

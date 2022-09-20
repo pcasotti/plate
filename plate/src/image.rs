@@ -54,14 +54,14 @@ impl SamplerAddress {
 }
 
 /// Optional parameters for [`Sampler creation`].
-pub struct SamplerParams {
+pub struct SamplerParameters {
     /// Filter mode for the sampler.
     pub filter: SamplerFilter,
     /// Address mode for the sampler.
     pub address_mode: SamplerAddress,
 }
 
-impl Default for SamplerParams {
+impl Default for SamplerParameters {
     fn default() -> Self {
         Self {
             filter: SamplerFilter::LINEAR,
@@ -96,7 +96,7 @@ impl Sampler {
     /// let sampler = plate::Sampler::new(&device, &Default::default())?;
     /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// ```
-    pub fn new(device: &Arc<Device>, params: &SamplerParams) -> Result<Self, Error> {
+    pub fn new(device: &Arc<Device>, params: &SamplerParameters) -> Result<Self, Error> {
         let sampler_info = vk::SamplerCreateInfo::builder()
             .mag_filter(params.filter.min)
             .min_filter(params.filter.mag)
