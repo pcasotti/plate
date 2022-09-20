@@ -86,6 +86,7 @@ pub struct SubpassDependency {
 pub struct RenderPass {
     device: Arc<Device>,
     pub(crate) render_pass: vk::RenderPass,
+    pub(crate) attachment_counts: Vec<usize>,
     clear_values: Vec<vk::ClearValue>,
 }
 
@@ -162,7 +163,9 @@ impl RenderPass {
         let color_attachments = subpasses.iter()
             .map(|s| {
                 s.color_attachments.iter()
-                    .map(|a| vk::AttachmentReference { attachment: a.attachment, layout: a.layout })
+                    .map(|a| {
+                        vk::AttachmentReference { attachment: a.attachment, layout: a.layout }
+                    })
                     .collect::<Vec<_>>()
             })
             .collect::<Vec<_>>();
@@ -224,9 +227,13 @@ impl RenderPass {
 
         let render_pass = unsafe { device.create_render_pass(&render_pass_info, None)? };
 
+        let attachment_counts = subpasses.iter()
+            .map(|s| s.color_attachments.len())
+            .collect();
         Ok(Self {
             device: Arc::clone(device),
             render_pass,
+            attachment_counts,
             clear_values,
         })
     }
@@ -316,7 +323,8 @@ impl Framebuffer {
     /// # let event_loop = winit::event_loop::EventLoop::new();
     /// # let window = winit::window::WindowBuilder::new().build(&event_loop)?;
     /// # let device = plate::Device::new(&Default::default(), &Default::default(), Some(&window))?;
-    /// # let image = plate::Image::new(&device, 0, 0, plate::Format::UNDEFINED,
+    /// # let image = plate::Image::new(&device, 0, 0,
+    /// # plate::Format::UNDEFINED, plate::ImageLayout::UNDEFINED,
     /// # plate::ImageUsageFlags::empty(), plate::ImageAspectFlags::empty())?;
     /// # let render_pass = plate::RenderPass::new(&device, &[], &[], &[])?;
     /// let framebuffer = plate::Framebuffer::new(

@@ -54,14 +54,14 @@ impl SamplerAddress {
 }
 
 /// Optional parameters for [`Sampler creation`].
-pub struct SamplerParams {
+pub struct SamplerParameters {
     /// Filter mode for the sampler.
     pub filter: SamplerFilter,
     /// Address mode for the sampler.
     pub address_mode: SamplerAddress,
 }
 
-impl Default for SamplerParams {
+impl Default for SamplerParameters {
     fn default() -> Self {
         Self {
             filter: SamplerFilter::LINEAR,
@@ -96,7 +96,7 @@ impl Sampler {
     /// let sampler = plate::Sampler::new(&device, &Default::default())?;
     /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// ```
-    pub fn new(device: &Arc<Device>, params: &SamplerParams) -> Result<Self, Error> {
+    pub fn new(device: &Arc<Device>, params: &SamplerParameters) -> Result<Self, Error> {
         let sampler_info = vk::SamplerCreateInfo::builder()
             .mag_filter(params.filter.min)
             .min_filter(params.filter.mag)
@@ -165,12 +165,13 @@ impl Image {
     ///     width,
     ///     height,
     ///     plate::Format::R8G8B8A8_SRGB,
+    ///     plate::ImageLayout::UNDEFINED,
     ///     plate::ImageUsageFlags::TRANSFER_DST | plate::ImageUsageFlags::SAMPLED,
     ///     plate::ImageAspectFlags::COLOR,
     /// )?;
     /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// ```
-    pub fn new(device: &Arc<Device>, width: u32, height: u32, format: Format, usage: ImageUsageFlags, image_aspect: ImageAspectFlags) -> Result<Self, Error> {
+    pub fn new(device: &Arc<Device>, width: u32, height: u32, format: Format, layout: ImageLayout, usage: ImageUsageFlags, image_aspect: ImageAspectFlags) -> Result<Self, Error> {
         let image_info = vk::ImageCreateInfo::builder()
             .image_type(vk::ImageType::TYPE_2D)
             .extent(vk::Extent3D {
@@ -182,7 +183,7 @@ impl Image {
             .array_layers(1)
             .format(format)
             .tiling(vk::ImageTiling::OPTIMAL)
-            .initial_layout(vk::ImageLayout::UNDEFINED)
+            .initial_layout(ImageLayout::UNDEFINED)
             .usage(usage)
             .sharing_mode(vk::SharingMode::EXCLUSIVE)
             .samples(vk::SampleCountFlags::TYPE_1);
@@ -199,16 +200,21 @@ impl Image {
         let mem = unsafe { device.allocate_memory(&alloc_info, None)? };
         unsafe { device.bind_image_memory(image, mem, 0)? };
 
-        Self::from_vk_image(device, image, width, height, format, image_aspect)
+        let cmd_pool = CommandPool::new(device)?;
+        if layout != ImageLayout::UNDEFINED {
+            transition_layout(device, image, &cmd_pool, vk::ImageLayout::UNDEFINED, layout)?;
+        }
+
+        Self::from_vk_image(device, image, Some(mem), width, height, format, image_aspect)
     }
 
-    pub(crate) fn from_vk_image(device: &Arc<Device>, image: vk::Image, width: u32, height: u32, format: Format, image_aspect: ImageAspectFlags) -> Result<Self, Error> {
+    pub(crate) fn from_vk_image(device: &Arc<Device>, image: vk::Image, mem: Option<vk::DeviceMemory>, width: u32, height: u32, format: Format, image_aspect: ImageAspectFlags) -> Result<Self, Error> {
         let view = Self::image_view(device, image, image_aspect, format)?;
 
         Ok(Self {
             device: Arc::clone(&device),
             image,
-            mem: None,
+            mem,
             view,
             format,
             width,
@@ -293,6 +299,7 @@ impl Texture {
             width,
             height,
             Format::R8G8B8A8_SRGB,
+            ImageLayout::UNDEFINED,
             ImageUsageFlags::TRANSFER_DST | ImageUsageFlags::SAMPLED,
             ImageAspectFlags::COLOR,
         )?;
@@ -309,13 +316,13 @@ fn transition_layout(device: &Arc<Device>, image: vk::Image, cmd_pool: &CommandP
     let (src_access, src_stage) = match old_layout {
         vk::ImageLayout::UNDEFINED => (vk::AccessFlags::empty(), vk::PipelineStageFlags::TOP_OF_PIPE),
         vk::ImageLayout::TRANSFER_DST_OPTIMAL => (vk::AccessFlags::TRANSFER_WRITE, vk::PipelineStageFlags::TRANSFER),
-        _ => unimplemented!(),
+        _ => (vk::AccessFlags::empty(), vk::PipelineStageFlags::TOP_OF_PIPE),
     };
 
     let (dst_access, dst_stage) = match new_layout {
         vk::ImageLayout::TRANSFER_DST_OPTIMAL => (vk::AccessFlags::TRANSFER_WRITE, vk::PipelineStageFlags::TRANSFER),
         vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL => (vk::AccessFlags::SHADER_READ, vk::PipelineStageFlags::FRAGMENT_SHADER),
-        _ => unimplemented!(),
+        _ => (vk::AccessFlags::empty(), vk::PipelineStageFlags::BOTTOM_OF_PIPE),
     };
 
     let cmd_buffer = cmd_pool.alloc_cmd_buffer(CommandBufferLevel::PRIMARY)?;

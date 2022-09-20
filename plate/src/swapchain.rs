@@ -303,7 +303,7 @@ impl Swapchain {
         let swapchain = unsafe { swapchain_loader.create_swapchain(&swapchain_info, None)? };
 
         let images = unsafe { swapchain_loader.get_swapchain_images(swapchain)? }.into_iter()
-            .map(|i| Image::from_vk_image(device, i, extent.width, extent.height, image_format.format, ImageAspectFlags::COLOR))
+            .map(|i| Image::from_vk_image(device, i, None, extent.width, extent.height, image_format.format, ImageAspectFlags::COLOR))
             .collect::<Result<Vec<_>, _>>()?;
 
         let depth_format = [

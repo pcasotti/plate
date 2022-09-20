@@ -17,6 +17,7 @@ impl App {
             swapchain.extent().0,
             swapchain.extent().1,
             swapchain.depth_format,
+            plate::ImageLayout::UNDEFINED,
             plate::ImageUsageFlags::DEPTH_STENCIL_ATTACHMENT,
             plate::ImageAspectFlags::DEPTH,
         )?;
@@ -75,6 +76,7 @@ impl App {
             self.swapchain.extent().0,
             self.swapchain.extent().1,
             self.swapchain.depth_format,
+            plate::ImageLayout::UNDEFINED,
             plate::ImageUsageFlags::DEPTH_STENCIL_ATTACHMENT,
             plate::ImageAspectFlags::DEPTH,
         )?;
