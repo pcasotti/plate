@@ -336,7 +336,8 @@ impl DescriptorAllocator {
     /// # let event_loop = winit::event_loop::EventLoop::new();
     /// # let window = winit::window::WindowBuilder::new().build(&event_loop)?;
     /// # let device = plate::Device::new(&Default::default(), &Default::default(), Some(&window))?;
-    /// # let image = plate::Image::new(&device, 0, 0, plate::Format::UNDEFINED,
+    /// # let image = plate::Image::new(&device, 0, 0,
+    /// # plate::Format::UNDEFINED, plate::ImageLayout::UNDEFINED,
     /// # plate::ImageUsageFlags::empty(), plate::ImageAspectFlags::empty())?;
     /// # let sampler = plate::Sampler::new(&device, &Default::default())?;
     /// let allocator = plate::DescriptorAllocator::new(&device)

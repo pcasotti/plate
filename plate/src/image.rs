@@ -165,6 +165,7 @@ impl Image {
     ///     width,
     ///     height,
     ///     plate::Format::R8G8B8A8_SRGB,
+    ///     plate::ImageLayout::UNDEFINED,
     ///     plate::ImageUsageFlags::TRANSFER_DST | plate::ImageUsageFlags::SAMPLED,
     ///     plate::ImageAspectFlags::COLOR,
     /// )?;
